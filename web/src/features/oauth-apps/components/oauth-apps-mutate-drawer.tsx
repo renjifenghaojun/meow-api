@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { Boxes, KeyRound, ShieldCheck } from 'lucide-react'
+import { Boxes, KeyRound, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, type SubmitErrorHandler } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -58,7 +58,9 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { handleServerError } from '@/lib/handle-server-error'
+import { ROLE } from '@/lib/roles'
 import { requireServerSuccess } from '@/lib/server-error-message'
+import { useAuthStore } from '@/stores/auth-store'
 
 import {
   createOAuthClient,
@@ -92,6 +94,11 @@ export function OAuthAppsMutateDrawer(props: OAuthAppsMutateDrawerProps) {
   const isUpdate = !!currentRow
   const { triggerRefresh, setOpen, setRevealedSecret } = useOAuthApps()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // The Trusted flag gates the sensitive scopes and is administrator-only; the
+  // server ignores it for common callers, so we only surface the toggle to admins.
+  const isAdmin = useAuthStore(
+    (s) => (s.auth.user?.role ?? ROLE.GUEST) >= ROLE.ADMIN
+  )
 
   const { data: scopesData } = useQuery({
     queryKey: ['oauth-server', 'scopes'],
@@ -102,12 +109,26 @@ export function OAuthAppsMutateDrawer(props: OAuthAppsMutateDrawerProps) {
 
   const scopeOptions = useMemo(
     () =>
-      (scopesData?.data ?? []).map((scope) => ({
-        value: scope.name,
-        label: scope.title || scope.name,
-        hint: scope.description,
-      })),
-    [scopesData]
+      (scopesData?.data ?? []).map((scope) => {
+        const description = t(scope.description, {
+          defaultValue: scope.description,
+        })
+        return {
+          value: scope.name,
+          label: t(scope.title || scope.name, {
+            defaultValue: scope.title || scope.name,
+          }),
+          // Flag sensitive scopes both visually (amber shield) and in the
+          // accessible hint, so an admin sees the elevated request before granting.
+          hint: scope.sensitive
+            ? `${description} · ${t('Sensitive')}`
+            : description,
+          icon: scope.sensitive ? (
+            <ShieldAlert className='size-3 text-amber-500' aria-hidden='true' />
+          ) : undefined,
+        }
+      }),
+    [scopesData, t]
   )
 
   const schema = useMemo(() => getOAuthClientFormSchema(t), [t])
@@ -375,6 +396,32 @@ export function OAuthAppsMutateDrawer(props: OAuthAppsMutateDrawerProps) {
                   </FormItem>
                 )}
               />
+              {isAdmin && (
+                <FormField
+                  control={form.control}
+                  name='trusted'
+                  render={({ field }) => (
+                    <FormItem className={sideDrawerSwitchItemClassName()}>
+                      <div className='flex flex-col gap-0.5 pr-4'>
+                        <FormLabel className='text-sm'>
+                          {t('Trusted application')}
+                        </FormLabel>
+                        <FormDescription className='text-xs'>
+                          {t(
+                            'Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.'
+                          )}
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name='status'

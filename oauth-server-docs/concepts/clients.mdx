@@ -88,7 +88,7 @@ description: "机密客户端与公开客户端、应用注册、回调地址与
 即便用户曾经同意过，若管理员之后收窄了客户端的允许范围，同意页仍会按当前上限重新校验。scope 目录见 [Scope 与 Claims](/concepts/scopes-and-claims)。
 
 <Note>
-敏感 scope（如 `api_keys`，授予"代表用户创建 API Key"的操作）默认**不在**客户端允许范围内，也不在默认的 `openid profile email` 里，需管理员将其显式加入客户端 `scopes` 后，用户才能在同意页对其授权。
+敏感业务 scope（`wallet.topup`、`apikeys.manage`）授予"代表用户动用资金 / 管理密钥"这类特权动作。它默认**不在**客户端允许范围内，也不在默认的 `openid profile email` 里，需管理员将其显式加入客户端 `scopes`。此外，客户端还须被管理员标记为 **Trusted**（`trusted` 字段，仅管理员可写）后，才能申请或持有敏感 scope；服务端在每次业务调用时实时复核该标记。scope 目录见 [Scope 与 Claims](/concepts/scopes-and-claims)。
 </Note>
 
 ## 启用状态

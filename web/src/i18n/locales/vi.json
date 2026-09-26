@@ -7070,6 +7070,27 @@
     "Allow creating OAuth applications": "Cho phép tạo ứng dụng OAuth",
     "Let this user register their own OAuth applications. Admins can always create applications.": "Cho phép người dùng này đăng ký ứng dụng OAuth của riêng họ. Quản trị viên luôn có thể tạo ứng dụng.",
     "Application disconnected and its API keys removed": "Đã ngắt kết nối ứng dụng và xóa các khóa API của nó",
-    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "Ngắt kết nối {{name}} sẽ ngay lập tức thu hồi quyền truy cập của nó và xóa mọi khóa API mà nó đã tạo cho bạn. Cổng (gateway) tự xóa các khóa đó, không phải ứng dụng. Bạn có thể kết nối lại sau bằng cách cấp quyền lại."
+    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "Ngắt kết nối {{name}} sẽ ngay lập tức thu hồi quyền truy cập của nó và xóa mọi khóa API mà nó đã tạo cho bạn. Cổng (gateway) tự xóa các khóa đó, không phải ứng dụng. Bạn có thể kết nối lại sau bằng cách cấp quyền lại.",
+    "Sign you in": "Đăng nhập cho bạn",
+    "Basic profile": "Hồ sơ cơ bản",
+    "Email address": "Địa chỉ email",
+    "Groups and role": "Nhóm và vai trò",
+    "Read your wallet": "Đọc ví của bạn",
+    "Top up your wallet": "Nạp tiền vào ví của bạn",
+    "Manage your API keys": "Quản lý khóa API của bạn",
+    "View available models": "Xem các mô hình khả dụng",
+    "Call models on your behalf": "Gọi mô hình thay mặt bạn",
+    "Verify your identity and sign you in": "Xác minh danh tính và đăng nhập cho bạn",
+    "Your username and display name": "Tên người dùng và tên hiển thị của bạn",
+    "Your email address": "Địa chỉ email của bạn",
+    "Your account groups and role": "Nhóm và vai trò tài khoản của bạn",
+    "View your quota balance and the available top-up options": "Xem số dư hạn mức và các tùy chọn nạp tiền khả dụng",
+    "Create top-up orders and payment links and redeem gift codes on your behalf": "Tạo đơn nạp tiền, liên kết thanh toán và đổi mã quà tặng thay mặt bạn",
+    "Create, view, update and delete API keys on your account": "Tạo, xem, cập nhật và xóa khóa API trên tài khoản của bạn",
+    "List the groups, models and pricing available to you": "Liệt kê các nhóm, mô hình và giá khả dụng cho bạn",
+    "Send requests to the model API and spend your quota": "Gửi yêu cầu đến API mô hình và sử dụng hạn mức của bạn",
+    "Sensitive": "Nhạy cảm",
+    "Trusted application": "Ứng dụng đáng tin cậy",
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Chỉ dành cho quản trị viên. Bắt buộc trước khi ứng dụng này có thể yêu cầu các quyền nhạy cảm như nạp tiền ví hoặc quản lý khóa API."
   }
 }

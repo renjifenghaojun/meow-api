@@ -67,6 +67,8 @@ export function getOAuthClientFormSchema(t: TFunction) {
         .min(1, t('Add at least one redirect URI')),
       scopes: z.array(z.string()).min(1, t('Select at least one scope')),
       is_public: z.boolean(),
+      // Admin-only; a common user's value is ignored server-side.
+      trusted: z.boolean(),
       status: z.number(),
     })
     .superRefine((data, ctx) => {
@@ -112,6 +114,7 @@ export const OAUTH_CLIENT_FORM_DEFAULT_VALUES: OAuthClientFormValues = {
   redirect_uris: [],
   scopes: ['openid'],
   is_public: false,
+  trusted: false,
   status: OAUTH_APP_STATUS.ENABLED,
 }
 
@@ -126,6 +129,7 @@ export function transformFormToPayload(
     redirect_uris: data.redirect_uris.map((uri) => uri.trim()).filter(Boolean),
     scopes: data.scopes,
     is_public: data.is_public,
+    trusted: data.trusted,
     status: data.status,
   }
 }
@@ -141,6 +145,7 @@ export function transformClientToFormDefaults(
     redirect_uris: client.redirect_uris ?? [],
     scopes: client.scopes ?? [],
     is_public: client.is_public,
+    trusted: client.trusted ?? false,
     status: client.status,
   }
 }

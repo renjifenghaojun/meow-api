@@ -93,9 +93,18 @@ func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usag
 		return err
 	}
 
-	token, err := model.GetTokenByKey(strings.TrimPrefix(relayInfo.TokenKey, "sk-"), false)
-	if err != nil {
-		return err
+	// An OAuth access token (token_id 0) has no relay-token row behind it: the
+	// wallet (User.Quota) is the only funding source, so skip the token load and
+	// its per-token remaining-quota check below and treat it as unlimited.
+	tokenUnlimited := true
+	tokenRemainQuota := 0
+	if relayInfo.TokenId != 0 {
+		token, err := model.GetTokenByKey(strings.TrimPrefix(relayInfo.TokenKey, "sk-"), false)
+		if err != nil {
+			return err
+		}
+		tokenUnlimited = token.UnlimitedQuota
+		tokenRemainQuota = token.RemainQuota
 	}
 
 	modelName := relayInfo.OriginModelName
@@ -141,8 +150,8 @@ func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usag
 		return fmt.Errorf("user quota is not enough, user quota: %s, need quota: %s", logger.FormatQuota(userQuota), logger.FormatQuota(quota))
 	}
 
-	if !token.UnlimitedQuota && token.RemainQuota < quota {
-		return fmt.Errorf("token quota is not enough, token remain quota: %s, need quota: %s", logger.FormatQuota(token.RemainQuota), logger.FormatQuota(quota))
+	if !tokenUnlimited && tokenRemainQuota < quota {
+		return fmt.Errorf("token quota is not enough, token remain quota: %s, need quota: %s", logger.FormatQuota(tokenRemainQuota), logger.FormatQuota(quota))
 	}
 
 	err = PostConsumeQuota(relayInfo, quota, 0, false)

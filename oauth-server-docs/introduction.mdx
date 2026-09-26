@@ -24,7 +24,7 @@ New API 内置了一个 **OAuth 2.0 / OpenID Connect（OIDC）授权服务器**�
     Access / Refresh Token 为不透明随机串，落库存哈希；Refresh Token 轮换并检测重放。
   </Card>
   <Card title="细粒度 Scope" icon="list-check">
-    `openid`、`profile`、`email`、`groups` 四种身份 scope，外加敏感的 `api_keys` 操作 scope，逐项在同意页展示与授权。
+    `openid`、`profile`、`email`、`groups` 身份 scope，外加 `wallet.*`、`apikeys.manage`、`models.*` 业务 scope，逐项在同意页展示与授权。
   </Card>
 </CardGroup>
 
@@ -40,7 +40,8 @@ New API 内置了一个 **OAuth 2.0 / OpenID Connect（OIDC）授权服务器**�
 | `/oauth2/token` | `POST` | 令牌端点，换取/刷新令牌 |
 | `/oauth2/userinfo` | `GET` `POST` | 用户信息端点 |
 | `/oauth2/revoke` | `POST` | 令牌撤销端点（RFC 7009） |
-| `/oauth2/keys` | `POST` | 创建 API Key（需 `api_keys` scope） |
+| `/oauth2/api/*` | `GET` `POST` `PUT` `DELETE` | 业务 API（钱包 / API 密钥 / 模型目录），按 scope 直连 |
+| `/v1/*` | — | 标准模型推理，`at_` 令牌需 `models.invoke` scope |
 
 <Info>
 Issuer 由系统设置 `oauth_server.issuer` 决定；为空时回退到 New API 的 `ServerAddress`（默认 `http://localhost:3000`），并去除结尾斜杠。所有端点 URL 均由 Issuer 拼接得到，请始终以发现文档中的地址为准。

@@ -268,11 +268,15 @@ export function OAuthConsent({ request }: { request: string }) {
                       scope.sensitive && 'text-amber-700 dark:text-amber-400'
                     )}
                   >
-                    {scope.title || scope.name}
+                    {t(scope.title || scope.name, {
+                      defaultValue: scope.title || scope.name,
+                    })}
                   </p>
                   {scope.description ? (
                     <p className='text-muted-foreground text-xs'>
-                      {scope.description}
+                      {t(scope.description, {
+                        defaultValue: scope.description,
+                      })}
                     </p>
                   ) : null}
                 </div>

@@ -395,6 +395,14 @@ func migrateDB() error {
 	if err := InitializeExternalIdentityClaims(); err != nil {
 		return err
 	}
+	// One-time revocation of relay API keys minted through the removed
+	// POST /oauth2/keys bridge. Runs after AutoMigrate so the oauth_client_id
+	// column is guaranteed to exist; idempotent, so it is safe on every startup.
+	if revoked, err := revokeOAuthBridgeTokens(); err != nil {
+		return err
+	} else if revoked > 0 {
+		common.SysLog(fmt.Sprintf("revoked %d OAuth bridge API key(s) minted via the removed /oauth2/keys endpoint", revoked))
+	}
 	if common.UsingMainDatabase(common.DatabaseTypeSQLite) {
 		if err := ensureSubscriptionPlanTableSQLite(); err != nil {
 			return err

@@ -18,6 +18,7 @@ import (
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/oauthserver"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
@@ -901,8 +902,10 @@ func setupOAuthKeyTestDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-// seedAppToken creates a relay key minted by an OAuth application (carrying an
-// oauth_client_id), mirroring what OAuthCreateAPIKey persists.
+// seedAppToken creates a relay key carrying an oauth_client_id, as minted by the
+// former POST /oauth2/keys bridge. The bridge has been removed, but such rows may
+// still exist from before its removal, so the grant/client cascade deletes below
+// must continue to clean them up.
 func seedAppToken(t *testing.T, db *gorm.DB, userID int, name string, rawKey string, clientId string) *model.Token {
 	t.Helper()
 	token := seedToken(t, db, userID, name, rawKey)
@@ -967,7 +970,7 @@ func TestDeleteOAuthUserGrantDeletesOnlyScopedAppKeys(t *testing.T) {
 	keepDirect := seedToken(t, db, 1, "u1-direct", "d1d1d1d1d1d1d1d1")
 	keepOtherUser := seedAppToken(t, db, 2, "u2-clientA", "a2a2a2a2a2a2a2a2", "cli_A")
 
-	require.NoError(t, model.UpsertOAuthUserGrant(1, "cli_A", []string{"openid", "api_keys"}))
+	require.NoError(t, model.UpsertOAuthUserGrant(1, "cli_A", []string{"openid", "apikeys.manage"}))
 	require.NoError(t, model.DeleteOAuthUserGrant(1, "cli_A"))
 
 	exists := func(id int) bool {
@@ -1093,4 +1096,80 @@ func TestOAuthClientAccessIsOwnerScoped(t *testing.T) {
 	// The owner and an admin can both read it.
 	assert.True(t, getAs(ownerID, common.RoleCommonUser).Success)
 	assert.True(t, getAs(adminID, common.RoleAdminUser).Success)
+}
+
+// TestApplyOAuthClientRequestTrustedGate locks the two server-side access-control
+// invariants applyOAuthClientRequest enforces on the client payload (OWASP ASVS
+// V4: never trust the caller's claims). It is DB-free — the function only mutates
+// the client struct and validates scopes — so a bare context carrying the caller's
+// role is the whole fixture.
+func TestApplyOAuthClientRequestTrustedGate(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctxWithRole := func(role int) *gin.Context {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("role", role)
+		return c
+	}
+	req := func(scopes []string, trusted bool) *oauthClientRequest {
+		return &oauthClientRequest{
+			Name:         "Example App",
+			RedirectUris: []string{"https://app.example.com/callback"},
+			Scopes:       scopes,
+			Trusted:      trusted,
+		}
+	}
+	sensitiveScopes := []string{oauthserver.ScopeWalletTopUp, oauthserver.ScopeAPIKeysManage}
+
+	t.Run("a common caller's trusted=true is ignored", func(t *testing.T) {
+		client := &model.OAuthClient{}
+		err := applyOAuthClientRequest(ctxWithRole(common.RoleCommonUser), client, req([]string{"openid", oauthserver.ScopeWalletRead}, true))
+		require.NoError(t, err)
+		assert.False(t, client.Trusted, "Trusted is an administrator-only attribute")
+	})
+
+	t.Run("a non-Trusted client cannot hold a sensitive scope", func(t *testing.T) {
+		for _, scope := range sensitiveScopes {
+			client := &model.OAuthClient{}
+			// The payload asks for trusted=true, but a common caller can't grant it,
+			// so the sensitive scope is refused rather than silently allowed.
+			err := applyOAuthClientRequest(ctxWithRole(common.RoleCommonUser), client, req([]string{"openid", scope}, true))
+			require.Error(t, err, scope)
+			assert.Contains(t, err.Error(), "trusted", scope)
+			assert.False(t, client.Trusted, scope)
+		}
+	})
+
+	t.Run("an admin may mark the client Trusted and grant a sensitive scope", func(t *testing.T) {
+		for _, scope := range sensitiveScopes {
+			client := &model.OAuthClient{}
+			err := applyOAuthClientRequest(ctxWithRole(common.RoleAdminUser), client, req([]string{"openid", scope}, true))
+			require.NoError(t, err, scope)
+			assert.True(t, client.Trusted, scope)
+			assert.Contains(t, client.GetScopes(), scope)
+		}
+	})
+
+	t.Run("an admin who leaves the client un-Trusted still cannot grant a sensitive scope", func(t *testing.T) {
+		client := &model.OAuthClient{}
+		err := applyOAuthClientRequest(ctxWithRole(common.RoleAdminUser), client, req([]string{oauthserver.ScopeAPIKeysManage}, false))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "trusted")
+	})
+
+	t.Run("non-sensitive scopes are accepted regardless of Trusted", func(t *testing.T) {
+		for _, scope := range []string{oauthserver.ScopeWalletRead, oauthserver.ScopeModelsRead, oauthserver.ScopeModelsInvoke} {
+			client := &model.OAuthClient{}
+			err := applyOAuthClientRequest(ctxWithRole(common.RoleCommonUser), client, req([]string{"openid", scope}, false))
+			require.NoError(t, err, scope)
+			assert.False(t, client.Trusted, scope)
+			assert.Contains(t, client.GetScopes(), scope)
+		}
+	})
+
+	t.Run("an unsupported scope is rejected", func(t *testing.T) {
+		client := &model.OAuthClient{}
+		err := applyOAuthClientRequest(ctxWithRole(common.RoleAdminUser), client, req([]string{"openid", "totally.unknown"}, true))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unknown scope")
+	})
 }

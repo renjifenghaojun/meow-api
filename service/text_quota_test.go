@@ -1500,3 +1500,59 @@ func TestAppendToolSurchargeLogInfoWritesOnlyStructuredFields(t *testing.T) {
 	assert.NotContains(t, fields, "image_generation_call")
 	assert.NotContains(t, fields, "image_generation_call_price")
 }
+
+// TestPreWssConsumeQuotaOAuthTokenFundsWallet locks the realtime pre-consume
+// branch added for OAuth access-token relay: a token_id of 0 has no oauth-token
+// or sk- relay-token row behind it, so PreWssConsumeQuota must skip the
+// GetTokenByKey load, treat the leg as unlimited, and gate purely on the owner's
+// wallet (User.Quota). The regression guarded here is the pre-change unconditional
+// GetTokenByKey call, which would fail for an at_ key and never reach the wallet
+// check. The token_id != 0 case proves the branch is genuinely gated: it still
+// loads the relay token and surfaces that lookup's failure first.
+func TestPreWssConsumeQuotaOAuthTokenFundsWallet(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	previousDB := model.DB
+	previousRedis := common.RedisEnabled
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Token{}))
+	model.DB = db
+	common.RedisEnabled = false
+	t.Cleanup(func() {
+		model.DB = previousDB
+		common.RedisEnabled = previousRedis
+	})
+
+	// A wallet of 0 makes the user-quota gate the decisive check; an unknown model
+	// resolves to the fallback ratio 37.5 and the "default" group to 1, so 100 input
+	// text tokens compute to a strictly positive quota (3750) regardless of settings.
+	user := model.User{Username: "wss-oauth-owner", Quota: 0, Status: common.UserStatusEnabled}
+	require.NoError(t, db.Create(&user).Error)
+	usage := &dto.RealtimeUsage{InputTokenDetails: dto.InputTokenDetails{TextTokens: 100}}
+	newCtx := func() *gin.Context {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Request = httptest.NewRequest("GET", "/v1/realtime", nil)
+		return c
+	}
+
+	// token_id 0 (OAuth access token): no token load, wallet is the only gate.
+	oauthInfo := &relaycommon.RelayInfo{
+		UserId: user.Id, TokenId: 0, TokenKey: "at_realtime_owner",
+		OriginModelName: "oauth-realtime-unknown-model", UsingGroup: "default", UserGroup: "default",
+	}
+	err = PreWssConsumeQuota(newCtx(), oauthInfo, usage)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "user quota is not enough",
+		"token_id 0 must gate on the wallet, not attempt a relay-token load")
+
+	// token_id != 0 (relay token): the branch loads the token by key and returns
+	// that lookup failure before reaching the wallet check.
+	relayInfo := &relaycommon.RelayInfo{
+		UserId: user.Id, TokenId: 999, TokenKey: "sk-missing-relay-token",
+		OriginModelName: "oauth-realtime-unknown-model", UsingGroup: "default", UserGroup: "default",
+	}
+	err = PreWssConsumeQuota(newCtx(), relayInfo, usage)
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "user quota is not enough",
+		"a non-zero token_id must still load the relay token and surface its lookup failure")
+}

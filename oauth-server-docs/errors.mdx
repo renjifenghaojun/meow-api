@@ -68,14 +68,15 @@ New API 授权服务器有两套响应封装，取决于端点：
 
     合法请求即便令牌未知也返回 `200`（无响应体）。
   </Accordion>
-  <Accordion title="API Key 端点 /oauth2/keys" icon="key">
-    | HTTP | `error` | 场景 |
-    | --- | --- | --- |
-    | 400 | `invalid_request` | 服务器未启用；请求体格式错误；`remain_quota` 为负或超上限 |
-    | 401 | `invalid_token` | 缺 Bearer 令牌；令牌无效/过期/撤销 |
-    | 403 | `insufficient_scope` | 令牌未被授予 `api_keys`（`WWW-Authenticate: Bearer error="insufficient_scope", scope="api_keys"`） |
-    | 403 | `access_denied` | 用户 API Key 数量已达上限 |
-    | 500 | `server_error` | 内部错误 |
+  <Accordion title="业务 API /oauth2/api/* 与 relay /v1/*" icon="key">
+    | HTTP | `error` | 场景 | 附加响应头 |
+    | --- | --- | --- | --- |
+    | 401 | `invalid_token` | 缺 Bearer 令牌；令牌无效/过期/撤销 | `WWW-Authenticate: Bearer error="invalid_token"` |
+    | 403 | `insufficient_scope` | 令牌未被授予该端点所需 scope | `WWW-Authenticate: Bearer error="insufficient_scope", scope="<scope>"` |
+    | 403 | `insufficient_scope` | 敏感 scope（`wallet.topup`/`apikeys.manage`），但客户端未被标记 Trusted | `WWW-Authenticate: Bearer error="insufficient_scope", scope="<scope>"` |
+    | 403 | — | 令牌所属账号被禁用 | — |
+
+    `/oauth2/api/*` 返回面板封装 `{success:false, message}`，`/v1/*` relay 返回 OpenAI 风格错误体；两者都附带上述 `WWW-Authenticate` 挑战头。
   </Accordion>
   <Accordion title="发现 / JWKS" icon="magnifying-glass">
     | HTTP | `error` | 场景 |
@@ -87,6 +88,6 @@ New API 授权服务器有两套响应封装，取决于端点：
 
 ## 限流
 
-`/oauth2/authorize`、`/oauth2/token`、`/oauth2/revoke`、`/oauth2/keys` 受"关键操作"限流保护，默认 **20 次 / 20 分钟**（可由 `CRITICAL_RATE_LIMIT` 与 `CRITICAL_RATE_LIMIT_DURATION` 环境变量调整）。发现、JWKS、userinfo 端点不限流（前两者可缓存，userinfo 已要求有效令牌）。
+`/oauth2/authorize`、`/oauth2/token`、`/oauth2/revoke` 受"关键操作"限流保护，默认 **20 次 / 20 分钟**（可由 `CRITICAL_RATE_LIMIT` 与 `CRITICAL_RATE_LIMIT_DURATION` 环境变量调整）；`/oauth2/api/*` 中动用资金或取回密钥明文的接口（`wallet/topup`、`wallet/redeem`、`tokens/:id/key`、`tokens/batch/keys`）同样受此限流。发现、JWKS、userinfo 端点不限流（前两者可缓存，userinfo 已要求有效令牌）。
 
 超过限流阈值时会被限流中间件拦截。

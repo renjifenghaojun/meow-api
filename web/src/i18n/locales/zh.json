@@ -7070,6 +7070,27 @@
     "Allow creating OAuth applications": "允许创建 OAuth 应用",
     "Let this user register their own OAuth applications. Admins can always create applications.": "允许该用户注册自己的 OAuth 应用。管理员始终可以创建应用。",
     "Application disconnected and its API keys removed": "已断开应用连接并删除其 API 密钥",
-    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "断开 {{name}} 会立即撤销其访问权限，并删除它为你创建的所有 API 密钥。这些密钥由网关自行删除，而非应用。之后你可以通过重新授权再次连接。"
+    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "断开 {{name}} 会立即撤销其访问权限，并删除它为你创建的所有 API 密钥。这些密钥由网关自行删除，而非应用。之后你可以通过重新授权再次连接。",
+    "Sign you in": "登录你的账户",
+    "Basic profile": "基本资料",
+    "Email address": "邮箱地址",
+    "Groups and role": "分组与角色",
+    "Read your wallet": "读取你的钱包",
+    "Top up your wallet": "为你的钱包充值",
+    "Manage your API keys": "管理你的 API 密钥",
+    "View available models": "查看可用模型",
+    "Call models on your behalf": "代表你调用模型",
+    "Verify your identity and sign you in": "验证你的身份并登录",
+    "Your username and display name": "你的用户名和显示名称",
+    "Your email address": "你的邮箱地址",
+    "Your account groups and role": "你的账户分组和角色",
+    "View your quota balance and the available top-up options": "查看你的配额余额和可用的充值档位",
+    "Create top-up orders and payment links and redeem gift codes on your behalf": "代表你创建充值订单、支付链接并兑换礼品码",
+    "Create, view, update and delete API keys on your account": "在你的账户上创建、查看、更新和删除 API 密钥",
+    "List the groups, models and pricing available to you": "列出你可用的分组、模型和定价",
+    "Send requests to the model API and spend your quota": "向模型 API 发送请求并消耗你的配额",
+    "Sensitive": "敏感",
+    "Trusted application": "受信任的应用",
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "仅限管理员。此应用需先被标记为受信任，才能申请钱包充值、API 密钥管理等敏感权限。"
   }
 }

@@ -7070,6 +7070,27 @@
     "Allow creating OAuth applications": "Разрешить создание приложений OAuth",
     "Let this user register their own OAuth applications. Admins can always create applications.": "Разрешает этому пользователю регистрировать собственные приложения OAuth. Администраторы всегда могут создавать приложения.",
     "Application disconnected and its API keys removed": "Приложение отключено, а его API-ключи удалены",
-    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "Отключение {{name}} немедленно отзывает доступ приложения и удаляет все API-ключи, созданные им для вас. Эти ключи удаляет сам шлюз, а не приложение. Позже вы сможете снова подключить его, выдав авторизацию заново."
+    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "Отключение {{name}} немедленно отзывает доступ приложения и удаляет все API-ключи, созданные им для вас. Эти ключи удаляет сам шлюз, а не приложение. Позже вы сможете снова подключить его, выдав авторизацию заново.",
+    "Sign you in": "Вход в систему",
+    "Basic profile": "Основной профиль",
+    "Email address": "Адрес электронной почты",
+    "Groups and role": "Группы и роль",
+    "Read your wallet": "Чтение вашего кошелька",
+    "Top up your wallet": "Пополнение вашего кошелька",
+    "Manage your API keys": "Управление вашими API-ключами",
+    "View available models": "Просмотр доступных моделей",
+    "Call models on your behalf": "Вызов моделей от вашего имени",
+    "Verify your identity and sign you in": "Проверка вашей личности и вход в систему",
+    "Your username and display name": "Ваше имя пользователя и отображаемое имя",
+    "Your email address": "Ваш адрес электронной почты",
+    "Your account groups and role": "Группы и роль вашей учётной записи",
+    "View your quota balance and the available top-up options": "Просмотр баланса квоты и доступных вариантов пополнения",
+    "Create top-up orders and payment links and redeem gift codes on your behalf": "Создание заказов на пополнение и платёжных ссылок, а также активация подарочных кодов от вашего имени",
+    "Create, view, update and delete API keys on your account": "Создание, просмотр, обновление и удаление API-ключей вашей учётной записи",
+    "List the groups, models and pricing available to you": "Список доступных вам групп, моделей и тарифов",
+    "Send requests to the model API and spend your quota": "Отправка запросов к API моделей и расход вашей квоты",
+    "Sensitive": "Конфиденциально",
+    "Trusted application": "Доверенное приложение",
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Только для администраторов. Требуется, прежде чем это приложение сможет запрашивать конфиденциальные разрешения, такие как пополнение кошелька или управление API-ключами."
   }
 }

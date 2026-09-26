@@ -29,7 +29,7 @@ curl https://your-newapi.example.com/.well-known/openid-configuration
   "userinfo_endpoint": "https://your-newapi.example.com/oauth2/userinfo",
   "jwks_uri": "https://your-newapi.example.com/oauth2/jwks",
   "revocation_endpoint": "https://your-newapi.example.com/oauth2/revoke",
-  "scopes_supported": ["openid", "profile", "email", "groups", "api_keys"],
+  "scopes_supported": ["openid", "profile", "email", "groups", "wallet.read", "wallet.topup", "apikeys.manage", "models.read", "models.invoke"],
   "response_types_supported": ["code"],
   "response_modes_supported": ["query"],
   "grant_types_supported": ["authorization_code", "refresh_token"],
@@ -57,7 +57,7 @@ curl https://your-newapi.example.com/.well-known/openid-configuration
   各端点的绝对地址。
 </ResponseField>
 <ResponseField name="scopes_supported" type="string[]">
-  支持的 scope：`openid`、`profile`、`email`、`groups`、`api_keys`。
+  支持的 scope：`openid`、`profile`、`email`、`groups`、`wallet.read`、`wallet.topup`、`apikeys.manage`、`models.read`、`models.invoke`。
 </ResponseField>
 <ResponseField name="response_types_supported" type="string[]">
   仅 `code`。

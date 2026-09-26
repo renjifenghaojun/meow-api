@@ -30,9 +30,12 @@ type Token struct {
 	CrossGroupRetry    bool    `json:"cross_group_retry"` // 跨分组重试，仅auto分组有效
 	AutoGroups         string  `json:"-" gorm:"type:text"`
 	// OAuthClientId records the OAuth application (OAuthClient.ClientId) that minted
-	// this key via POST /oauth2/keys. Empty for keys the user created directly. It
-	// drives the user-vs-application split in the key list and lets the gateway
-	// delete an application's keys itself when the user revokes that application.
+	// this key via the former POST /oauth2/keys bridge. That bridge has been removed
+	// (OAuth access tokens now authorize business endpoints directly through their
+	// own scopes), and every key carrying a non-empty value here is revoked by a
+	// one-time startup migration (revokeOAuthBridgeTokens). The column is retained
+	// only so that migration and the client-delete cascade can still find any
+	// legacy rows; keys created directly by a user leave it empty.
 	OAuthClientId string         `json:"oauth_client_id" gorm:"column:oauth_client_id;type:varchar(64);index"`
 	DeletedAt     gorm.DeletedAt `gorm:"index"`
 }

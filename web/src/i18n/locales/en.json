@@ -7070,6 +7070,27 @@
     "Allow creating OAuth applications": "Allow creating OAuth applications",
     "Let this user register their own OAuth applications. Admins can always create applications.": "Let this user register their own OAuth applications. Admins can always create applications.",
     "Application disconnected and its API keys removed": "Application disconnected and its API keys removed",
-    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again."
+    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.",
+    "Sign you in": "Sign you in",
+    "Basic profile": "Basic profile",
+    "Email address": "Email address",
+    "Groups and role": "Groups and role",
+    "Read your wallet": "Read your wallet",
+    "Top up your wallet": "Top up your wallet",
+    "Manage your API keys": "Manage your API keys",
+    "View available models": "View available models",
+    "Call models on your behalf": "Call models on your behalf",
+    "Verify your identity and sign you in": "Verify your identity and sign you in",
+    "Your username and display name": "Your username and display name",
+    "Your email address": "Your email address",
+    "Your account groups and role": "Your account groups and role",
+    "View your quota balance and the available top-up options": "View your quota balance and the available top-up options",
+    "Create top-up orders and payment links and redeem gift codes on your behalf": "Create top-up orders and payment links and redeem gift codes on your behalf",
+    "Create, view, update and delete API keys on your account": "Create, view, update and delete API keys on your account",
+    "List the groups, models and pricing available to you": "List the groups, models and pricing available to you",
+    "Send requests to the model API and spend your quota": "Send requests to the model API and spend your quota",
+    "Sensitive": "Sensitive",
+    "Trusted application": "Trusted application",
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management."
   }
 }

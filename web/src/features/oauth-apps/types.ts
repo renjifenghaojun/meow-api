@@ -36,6 +36,8 @@ export const oauthClientSchema = z.object({
   redirect_uris: z.array(z.string()).nullish().default([]),
   scopes: z.array(z.string()).nullish().default([]),
   is_public: z.boolean(),
+  // Admin-vetted flag gating the sensitive scopes (wallet.topup, apikeys.manage).
+  trusted: z.boolean().nullish().default(false),
   status: z.number(), // 1: enabled, 2: disabled
   owner_user_id: z.number(),
   created_at: z.number(),
@@ -50,6 +52,8 @@ export interface OAuthScope {
   title: string
   description: string
   oidc: boolean
+  // Sensitive scopes grant a privileged action and require a Trusted client.
+  sensitive: boolean
 }
 
 // ============================================================================
@@ -71,6 +75,8 @@ export interface OAuthClientRequest {
   redirect_uris: string[]
   scopes: string[]
   is_public: boolean
+  // Only honored for admin/root callers; ignored server-side otherwise.
+  trusted: boolean
   status: number
 }
 

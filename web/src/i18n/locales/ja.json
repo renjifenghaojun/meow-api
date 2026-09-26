@@ -7070,6 +7070,27 @@
     "Allow creating OAuth applications": "OAuth アプリケーションの作成を許可",
     "Let this user register their own OAuth applications. Admins can always create applications.": "このユーザーが自分の OAuth アプリケーションを登録できるようにします。管理者は常にアプリケーションを作成できます。",
     "Application disconnected and its API keys removed": "アプリケーションの接続を解除し、その API キーを削除しました",
-    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "{{name}} の接続を解除すると、そのアクセス権が直ちに取り消され、アプリがあなたのために作成した API キーがすべて削除されます。これらのキーはアプリケーションではなくゲートウェイ自身が削除します。後で再度承認すれば、また接続できます。"
+    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "{{name}} の接続を解除すると、そのアクセス権が直ちに取り消され、アプリがあなたのために作成した API キーがすべて削除されます。これらのキーはアプリケーションではなくゲートウェイ自身が削除します。後で再度承認すれば、また接続できます。",
+    "Sign you in": "サインイン",
+    "Basic profile": "基本プロフィール",
+    "Email address": "メールアドレス",
+    "Groups and role": "グループと役割",
+    "Read your wallet": "ウォレットの読み取り",
+    "Top up your wallet": "ウォレットへのチャージ",
+    "Manage your API keys": "API キーの管理",
+    "View available models": "利用可能なモデルの表示",
+    "Call models on your behalf": "あなたに代わってモデルを呼び出す",
+    "Verify your identity and sign you in": "本人確認を行いサインインします",
+    "Your username and display name": "ユーザー名と表示名",
+    "Your email address": "あなたのメールアドレス",
+    "Your account groups and role": "アカウントのグループと役割",
+    "View your quota balance and the available top-up options": "クォータ残高と利用可能なチャージ方法を表示します",
+    "Create top-up orders and payment links and redeem gift codes on your behalf": "チャージ注文や支払いリンクの作成、ギフトコードの利用をあなたに代わって行います",
+    "Create, view, update and delete API keys on your account": "アカウントの API キーの作成、表示、更新、削除を行います",
+    "List the groups, models and pricing available to you": "利用可能なグループ、モデル、料金を一覧表示します",
+    "Send requests to the model API and spend your quota": "モデル API にリクエストを送信し、あなたのクォータを消費します",
+    "Sensitive": "機微",
+    "Trusted application": "信頼済みアプリケーション",
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "管理者専用。このアプリケーションがウォレットのチャージや API キー管理などの機微な権限を要求するには、事前に信頼済みとして設定する必要があります。"
   }
 }

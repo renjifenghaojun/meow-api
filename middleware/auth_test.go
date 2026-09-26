@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/oauthserver"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/golang-jwt/jwt/v5"
@@ -333,4 +335,98 @@ func TestApplyWebSocketSubprotocolAuthorizationReadsRepeatedHeaders(t *testing.T
 
 	assert.True(t, applyWebSocketSubprotocolAuthorization(header))
 	assert.Equal(t, "Bearer sk-later-field", header.Get("Authorization"))
+}
+
+// setupOAuthRelayMiddlewareTest isolates model.DB on an in-memory database holding
+// the tables the OAuth relay branch touches, restoring process globals on cleanup.
+func setupOAuthRelayMiddlewareTest(t *testing.T) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	previousDB := model.DB
+	previousRedis := common.RedisEnabled
+	previousSecret := common.SessionSecret
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.OAuthClient{}, &model.OAuthToken{}))
+	model.DB = db
+	common.RedisEnabled = false
+	common.SessionSecret = "oauth-relay-test-secret"
+	t.Cleanup(func() {
+		model.DB = previousDB
+		common.RedisEnabled = previousRedis
+		common.SessionSecret = previousSecret
+	})
+}
+
+func seedRelayUser(t *testing.T, id, status int) {
+	t.Helper()
+	suffix := fmt.Sprintf("%d", id)
+	require.NoError(t, model.DB.Create(&model.User{
+		Id: id, Username: "relay-owner-" + suffix, AffCode: "relay-owner-" + suffix,
+		Group: "default", Status: status, Role: common.RoleCommonUser, Quota: 1000,
+	}).Error)
+}
+
+func seedRelayToken(t *testing.T, plain string, userId int, scopes string) {
+	t.Helper()
+	rec := &model.OAuthToken{
+		GrantId: "grant-" + plain, ClientId: "cli_relay", UserId: userId, Scopes: scopes,
+		AccessExpiresAt: time.Now().Add(time.Hour).Unix(), RefreshExpiresAt: time.Now().Add(time.Hour).Unix(),
+	}
+	rec.SetAccessToken(plain)
+	require.NoError(t, rec.Insert())
+}
+
+func newRelayContext() (*gin.Context, *httptest.ResponseRecorder) {
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	return c, rec
+}
+
+// TestOAuthRelayAuthDrawsUserWallet verifies the models.invoke branch makes the
+// token-billing leg a no-op (token_id 0, unlimited, no model limit) so downstream
+// billing draws only from the owner's wallet ("纯用户级" quota), and routes with
+// the user's own group.
+func TestOAuthRelayAuthDrawsUserWallet(t *testing.T) {
+	setupOAuthRelayMiddlewareTest(t)
+	seedRelayUser(t, 7, common.UserStatusEnabled)
+	seedRelayToken(t, "at_relay_ok", 7, "openid "+oauthserver.ScopeModelsInvoke)
+
+	c, _ := newRelayContext()
+	require.True(t, oauthRelayAuth(c, "at_relay_ok"))
+
+	assert.Equal(t, 7, c.GetInt("id"))
+	assert.Equal(t, 0, c.GetInt("token_id"), "token-billing leg must be a no-op (WHERE id=0)")
+	assert.True(t, c.GetBool("token_unlimited_quota"), "pre-consume reservation must be skipped")
+	assert.False(t, c.GetBool("token_model_limit_enabled"), "no per-token model limit under user-level quota")
+	assert.Equal(t, "default", common.GetContextKeyString(c, constant.ContextKeyUsingGroup))
+	assert.Equal(t, "default", common.GetContextKeyString(c, constant.ContextKeyUserGroup))
+}
+
+func TestOAuthRelayAuthRejections(t *testing.T) {
+	setupOAuthRelayMiddlewareTest(t)
+	seedRelayUser(t, 7, common.UserStatusEnabled)
+	seedRelayUser(t, 8, common.UserStatusDisabled)
+	seedRelayToken(t, "at_no_invoke", 7, "openid models.read")
+	seedRelayToken(t, "at_disabled_owner", 8, "openid "+oauthserver.ScopeModelsInvoke)
+
+	t.Run("without models.invoke is 403 insufficient_scope", func(t *testing.T) {
+		c, rec := newRelayContext()
+		require.False(t, oauthRelayAuth(c, "at_no_invoke"))
+		assert.True(t, c.IsAborted())
+		assert.Equal(t, http.StatusForbidden, rec.Code)
+		assert.Contains(t, rec.Header().Get("WWW-Authenticate"), `error="insufficient_scope"`)
+	})
+	t.Run("unknown token is 401 invalid_token", func(t *testing.T) {
+		c, rec := newRelayContext()
+		require.False(t, oauthRelayAuth(c, "at_unknown"))
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+		assert.Contains(t, rec.Header().Get("WWW-Authenticate"), `error="invalid_token"`)
+	})
+	t.Run("disabled owner is 403", func(t *testing.T) {
+		c, rec := newRelayContext()
+		require.False(t, oauthRelayAuth(c, "at_disabled_owner"))
+		assert.Equal(t, http.StatusForbidden, rec.Code)
+	})
 }

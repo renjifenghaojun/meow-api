@@ -7070,6 +7070,27 @@
     "Allow creating OAuth applications": "允許建立 OAuth 應用程式",
     "Let this user register their own OAuth applications. Admins can always create applications.": "允許此使用者註冊自己的 OAuth 應用程式。管理員始終可以建立應用程式。",
     "Application disconnected and its API keys removed": "已中斷應用程式連線並刪除其 API 金鑰",
-    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "中斷 {{name}} 會立即撤銷其存取權限，並刪除它為你建立的所有 API 金鑰。這些金鑰由閘道自行刪除，而非應用程式。之後你可以透過重新授權再次連線。"
+    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "中斷 {{name}} 會立即撤銷其存取權限，並刪除它為你建立的所有 API 金鑰。這些金鑰由閘道自行刪除，而非應用程式。之後你可以透過重新授權再次連線。",
+    "Sign you in": "登入你的帳戶",
+    "Basic profile": "基本資料",
+    "Email address": "電子郵件地址",
+    "Groups and role": "分組與角色",
+    "Read your wallet": "讀取你的錢包",
+    "Top up your wallet": "為你的錢包儲值",
+    "Manage your API keys": "管理你的 API 金鑰",
+    "View available models": "檢視可用模型",
+    "Call models on your behalf": "代表你呼叫模型",
+    "Verify your identity and sign you in": "驗證你的身分並登入",
+    "Your username and display name": "你的使用者名稱和顯示名稱",
+    "Your email address": "你的電子郵件地址",
+    "Your account groups and role": "你的帳戶分組和角色",
+    "View your quota balance and the available top-up options": "檢視你的配額餘額和可用的儲值選項",
+    "Create top-up orders and payment links and redeem gift codes on your behalf": "代表你建立儲值訂單、付款連結並兌換禮品碼",
+    "Create, view, update and delete API keys on your account": "在你的帳戶上建立、檢視、更新和刪除 API 金鑰",
+    "List the groups, models and pricing available to you": "列出你可用的分組、模型和定價",
+    "Send requests to the model API and spend your quota": "向模型 API 傳送請求並消耗你的配額",
+    "Sensitive": "敏感",
+    "Trusted application": "受信任的應用程式",
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "僅限管理員。此應用程式需先被標記為受信任，才能申請錢包儲值、API 金鑰管理等敏感權限。"
   }
 }

@@ -210,21 +210,25 @@ const accessTokenAuditContextKey = "access_token_request_audit"
 func TokenOperationAudit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var action, content string
+		// The OAuth-scoped API group (/oauth2/api/tokens, guarded by the
+		// apikeys.manage scope) fronts the same token handlers as the dashboard
+		// /api/token group, so its delegated key operations must be audited
+		// identically. Each dashboard path is matched together with its OAuth twin.
 		switch c.Request.Method + " " + c.FullPath() {
-		case "POST /api/token/":
+		case "POST /api/token/", "POST /oauth2/api/tokens":
 			action, content = "token.create", "API token creation"
-		case "PUT /api/token/":
+		case "PUT /api/token/", "PUT /oauth2/api/tokens":
 			action, content = "token.update", "API token configuration update"
 			if c.Query("status_only") != "" {
 				action, content = "token.status_update", "API token status update"
 			}
-		case "DELETE /api/token/:id":
+		case "DELETE /api/token/:id", "DELETE /oauth2/api/tokens/:id":
 			action, content = "token.delete", "API token deletion"
-		case "POST /api/token/batch":
+		case "POST /api/token/batch", "POST /oauth2/api/tokens/batch":
 			action, content = "token.delete_batch", "API token batch deletion"
-		case "POST /api/token/:id/key":
+		case "POST /api/token/:id/key", "POST /oauth2/api/tokens/:id/key":
 			action, content = "token.key_view", "API token key access"
-		case "POST /api/token/batch/keys":
+		case "POST /api/token/batch/keys", "POST /oauth2/api/tokens/batch/keys":
 			action, content = "token.key_view_batch", "API token batch key access"
 		default:
 			c.Next()

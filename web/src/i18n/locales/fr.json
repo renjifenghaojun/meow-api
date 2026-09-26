@@ -7070,6 +7070,27 @@
     "Allow creating OAuth applications": "Autoriser la création d’applications OAuth",
     "Let this user register their own OAuth applications. Admins can always create applications.": "Permet à cet utilisateur d’enregistrer ses propres applications OAuth. Les administrateurs peuvent toujours créer des applications.",
     "Application disconnected and its API keys removed": "Application déconnectée et ses clés API supprimées",
-    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "Déconnecter {{name}} révoque immédiatement son accès et supprime toutes les clés API qu’elle a créées pour vous. C’est la passerelle qui supprime ces clés, pas l’application. Vous pourrez la reconnecter plus tard en l’autorisant à nouveau."
+    "Disconnecting {{name}} immediately revokes its access and deletes any API keys it created for you. The gateway removes those keys itself, not the application. You can reconnect it later by authorizing again.": "Déconnecter {{name}} révoque immédiatement son accès et supprime toutes les clés API qu’elle a créées pour vous. C’est la passerelle qui supprime ces clés, pas l’application. Vous pourrez la reconnecter plus tard en l’autorisant à nouveau.",
+    "Sign you in": "Vous connecter",
+    "Basic profile": "Profil de base",
+    "Email address": "Adresse e-mail",
+    "Groups and role": "Groupes et rôle",
+    "Read your wallet": "Lire votre portefeuille",
+    "Top up your wallet": "Recharger votre portefeuille",
+    "Manage your API keys": "Gérer vos clés API",
+    "View available models": "Voir les modèles disponibles",
+    "Call models on your behalf": "Appeler des modèles en votre nom",
+    "Verify your identity and sign you in": "Vérifier votre identité et vous connecter",
+    "Your username and display name": "Votre nom d'utilisateur et votre nom affiché",
+    "Your email address": "Votre adresse e-mail",
+    "Your account groups and role": "Les groupes et le rôle de votre compte",
+    "View your quota balance and the available top-up options": "Voir votre solde de quota et les options de recharge disponibles",
+    "Create top-up orders and payment links and redeem gift codes on your behalf": "Créer des commandes de recharge et des liens de paiement et utiliser des codes cadeaux en votre nom",
+    "Create, view, update and delete API keys on your account": "Créer, consulter, mettre à jour et supprimer les clés API de votre compte",
+    "List the groups, models and pricing available to you": "Lister les groupes, modèles et tarifs qui vous sont accessibles",
+    "Send requests to the model API and spend your quota": "Envoyer des requêtes à l'API des modèles et consommer votre quota",
+    "Sensitive": "Sensible",
+    "Trusted application": "Application de confiance",
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Réservé aux administrateurs. Requis avant que cette application puisse demander des autorisations sensibles telles que la recharge du portefeuille ou la gestion des clés API."
   }
 }

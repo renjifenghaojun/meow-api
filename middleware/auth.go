@@ -15,9 +15,11 @@ import (
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/pkg/oauthscope"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
+	"github.com/QuantumNous/new-api/service/oauthserver"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
@@ -390,6 +392,15 @@ func TokenAuth() func(c *gin.Context) {
 		if strings.HasPrefix(key, "Bearer ") || strings.HasPrefix(key, "bearer ") {
 			key = strings.TrimSpace(key[7:])
 		}
+		// OAuth access tokens (at_...) authorize the relay directly through their
+		// own models.invoke scope, spending the owner's wallet. They are not relay
+		// keys, so branch before the sk-/segment parsing below.
+		if oauthscope.IsAccessToken(key) {
+			if oauthRelayAuth(c, key) {
+				c.Next()
+			}
+			return
+		}
 		if key == "" || key == "midjourney-proxy" {
 			key = c.Request.Header.Get("mj-api-secret")
 			if strings.HasPrefix(key, "Bearer ") || strings.HasPrefix(key, "bearer ") {
@@ -485,6 +496,56 @@ func TokenAuth() func(c *gin.Context) {
 		}
 		c.Next()
 	}
+}
+
+// oauthRelayAuth authenticates an OAuth access token (at_...) for the relay path
+// and, on success, sets up the request context so downstream billing draws only
+// from the owner's wallet. It returns true when the request may proceed; on any
+// failure it renders the OpenAI-shaped error itself and returns false.
+//
+// The token owns no relay-token row, so the token-billing leg is made a no-op:
+// token_id 0 turns every token-quota UPDATE into a harmless WHERE id = 0, and
+// token_unlimited_quota short-circuits the pre-consume reservation, leaving the
+// wallet (User.Quota) as the only funding source. No model-limit is set, so the
+// user's own group governs which models are callable ("纯用户级" quota model).
+func oauthRelayAuth(c *gin.Context, accessToken string) bool {
+	grant, err := oauthscope.AuthorizeRelay(accessToken)
+	if err != nil {
+		switch {
+		case errors.Is(err, oauthscope.ErrInsufficientScope), errors.Is(err, oauthscope.ErrClientNotTrusted):
+			c.Header("WWW-Authenticate", `Bearer error="insufficient_scope", scope="`+oauthserver.ScopeModelsInvoke+`"`)
+			abortWithOpenAiMessage(c, http.StatusForbidden,
+				"the "+oauthserver.ScopeModelsInvoke+" scope is required to call the model API", types.ErrorCodeAccessDenied)
+		case errors.Is(err, oauthscope.ErrNoToken), errors.Is(err, oauthscope.ErrInvalidToken):
+			c.Header("WWW-Authenticate", `Bearer error="invalid_token"`)
+			abortWithOpenAiMessage(c, http.StatusUnauthorized, common.TranslateMessage(c, i18n.MsgTokenInvalid))
+		default:
+			common.SysLog("TokenAuth oauth relay error: " + err.Error())
+			abortWithOpenAiMessage(c, http.StatusInternalServerError, common.TranslateMessage(c, i18n.MsgDatabaseError))
+		}
+		return false
+	}
+
+	userCache, err := model.GetUserCache(grant.UserId)
+	if err != nil {
+		common.SysLog(fmt.Sprintf("TokenAuth oauth relay GetUserCache error for user %d: %v", grant.UserId, err))
+		abortWithOpenAiMessage(c, http.StatusInternalServerError, common.TranslateMessage(c, i18n.MsgDatabaseError))
+		return false
+	}
+	if userCache.Status != common.UserStatusEnabled {
+		abortWithOpenAiMessage(c, http.StatusForbidden, common.TranslateMessage(c, i18n.MsgAuthUserBanned))
+		return false
+	}
+
+	c.Set("id", grant.UserId)
+	c.Set("role", userCache.Role)
+	userCache.WriteContext(c)
+	// No token group behind an OAuth token: route with the user's own group.
+	common.SetContextKey(c, constant.ContextKeyUsingGroup, userCache.Group)
+	c.Set("token_id", 0)
+	c.Set("token_unlimited_quota", true)
+	c.Set("token_model_limit_enabled", false)
+	return true
 }
 
 func applyWebSocketSubprotocolAuthorization(header http.Header) bool {

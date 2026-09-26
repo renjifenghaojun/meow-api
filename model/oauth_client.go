@@ -40,7 +40,13 @@ type OAuthClient struct {
 	Scopes string `json:"scopes" gorm:"type:varchar(512);default:'openid profile email'"`
 	// IsPublic marks a public (non-confidential) client that authenticates with
 	// PKCE instead of a client secret.
-	IsPublic    bool  `json:"is_public" gorm:"default:false"`
+	IsPublic bool `json:"is_public" gorm:"default:false"`
+	// Trusted marks a client an administrator has vetted to hold sensitive
+	// scopes (wallet.topup, apikeys.manage). Only an admin may set it, and a
+	// client may request or hold a sensitive scope only while it is true. The
+	// zero value (false) is deliberately the safe default, so no gorm default
+	// tag is set (a bool default:true/false tag causes AutoMigrate churn).
+	Trusted     bool  `json:"trusted"`
 	Status      int   `json:"status" gorm:"default:1"`
 	OwnerUserId int   `json:"owner_user_id" gorm:"index;default:0"`
 	CreatedAt   int64 `json:"created_at" gorm:"autoCreateTime"`

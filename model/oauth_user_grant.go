@@ -65,10 +65,12 @@ func ListOAuthUserGrants(userId int) ([]*OAuthUserGrant, error) {
 }
 
 // DeleteOAuthUserGrant removes a user's consent for a client and, in one
-// transaction, revokes every OAuth token issued under it AND deletes the relay
-// API keys the application minted for this user via POST /oauth2/keys. Deleting
-// those keys is the gateway's own responsibility on disconnect — it is never
-// delegated to the application — so a revoked app loses API access immediately.
+// transaction, revokes every OAuth token issued under it AND deletes any relay
+// API keys the application minted for this user via the former POST /oauth2/keys
+// bridge. Deleting those keys is the gateway's own responsibility on disconnect —
+// it is never delegated to the application — so a revoked app loses API access
+// immediately. (The bridge is gone and such keys are revoked at startup, so this
+// cascade now only guards against any legacy row.)
 func DeleteOAuthUserGrant(userId int, clientId string) error {
 	return DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&OAuthToken{}).

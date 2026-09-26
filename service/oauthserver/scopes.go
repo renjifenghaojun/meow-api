@@ -22,25 +22,76 @@ type Scope struct {
 	Sensitive bool `json:"sensitive"`
 }
 
-// ScopeOpenID is required for any OpenID Connect flow (issues an ID token).
-const ScopeOpenID = "openid"
+// The identity scopes map to OpenID Connect standard claims (see
+// ClaimsForScopes). ScopeOpenID is required for any OIDC flow (issues an ID
+// token).
+const (
+	ScopeOpenID  = "openid"
+	ScopeProfile = "profile"
+	ScopeEmail   = "email"
+	ScopeGroups  = "groups"
+)
 
-// ScopeAPIKeys authorizes a client to create API keys (relay tokens) on the
-// resource owner's behalf and receive their value, so the client can call the
-// API as the user. It is an action authorization, not an identity claim, so it
-// is marked Sensitive and implies no ClaimsForScopes entry.
-const ScopeAPIKeys = "api_keys"
+// The business scopes each authorize one action domain against the resource
+// owner's account, driven directly by the access token (no relay API key in
+// between). They are named "<domain>.<action>". The sensitive ones (topping up
+// the wallet, managing API keys) grant a privileged action, so a client may
+// only request or hold them once an admin marks it Trusted.
+const (
+	// ScopeWalletRead grants read-only access to the owner's quota balance and
+	// the configured top-up options.
+	ScopeWalletRead = "wallet.read"
+	// ScopeWalletTopUp authorizes creating top-up orders / payment links and
+	// redeeming gift codes on the owner's behalf. Sensitive.
+	ScopeWalletTopUp = "wallet.topup"
+	// ScopeAPIKeysManage authorizes full CRUD over the owner's relay API keys.
+	// Sensitive.
+	ScopeAPIKeysManage = "apikeys.manage"
+	// ScopeModelsRead grants read-only access to the groups, models and pricing
+	// available to the owner.
+	ScopeModelsRead = "models.read"
+	// ScopeModelsInvoke authorizes calling the model relay API (/v1/*) on the
+	// owner's behalf, spending the owner's own quota. It is a dedicated relay
+	// scope, not an identity claim, and implies no ClaimsForScopes entry.
+	ScopeModelsInvoke = "models.invoke"
+)
 
 // supportedScopes is the authorization server's scope catalog. Adding a scope
 // here makes it available for clients to allow and for users to grant; wire any
 // new claims it implies into ClaimsForScopes, and mark it Sensitive when it
-// grants an action rather than exposing an identity claim.
+// grants a privileged action rather than exposing an identity claim.
 var supportedScopes = []Scope{
 	{Name: ScopeOpenID, Title: "Sign you in", Description: "Verify your identity and sign you in", OIDC: true},
-	{Name: "profile", Title: "Basic profile", Description: "Your username and display name", OIDC: true},
-	{Name: "email", Title: "Email address", Description: "Your email address", OIDC: true},
-	{Name: "groups", Title: "Groups and role", Description: "Your account groups and role", OIDC: false},
-	{Name: ScopeAPIKeys, Title: "Create API keys", Description: "Create API keys on your account and use them to call the API on your behalf", OIDC: false, Sensitive: true},
+	{Name: ScopeProfile, Title: "Basic profile", Description: "Your username and display name", OIDC: true},
+	{Name: ScopeEmail, Title: "Email address", Description: "Your email address", OIDC: true},
+	{Name: ScopeGroups, Title: "Groups and role", Description: "Your account groups and role", OIDC: false},
+	{Name: ScopeWalletRead, Title: "Read your wallet", Description: "View your quota balance and the available top-up options", OIDC: false},
+	{Name: ScopeWalletTopUp, Title: "Top up your wallet", Description: "Create top-up orders and payment links and redeem gift codes on your behalf", OIDC: false, Sensitive: true},
+	{Name: ScopeAPIKeysManage, Title: "Manage your API keys", Description: "Create, view, update and delete API keys on your account", OIDC: false, Sensitive: true},
+	{Name: ScopeModelsRead, Title: "View available models", Description: "List the groups, models and pricing available to you", OIDC: false},
+	{Name: ScopeModelsInvoke, Title: "Call models on your behalf", Description: "Send requests to the model API and spend your quota", OIDC: false},
+}
+
+// SensitiveScopeNames returns the scopes that grant a privileged action and so
+// require the requesting client to be admin-marked Trusted.
+func SensitiveScopeNames() []string {
+	var out []string
+	for _, s := range supportedScopes {
+		if s.Sensitive {
+			out = append(out, s.Name)
+		}
+	}
+	return out
+}
+
+// ContainsSensitiveScope reports whether any scope in the set is sensitive.
+func ContainsSensitiveScope(scopes []string) bool {
+	for _, name := range scopes {
+		if s, ok := scopeIndex[name]; ok && s.Sensitive {
+			return true
+		}
+	}
+	return false
 }
 
 var scopeIndex = func() map[string]Scope {
@@ -147,21 +198,21 @@ func ClaimsForScopes(user *model.User, scopes []string) map[string]any {
 	claims := make(map[string]any)
 	for _, scope := range scopes {
 		switch scope {
-		case "profile":
+		case ScopeProfile:
 			claims["preferred_username"] = user.Username
 			if user.DisplayName != "" {
 				claims["name"] = user.DisplayName
 			} else {
 				claims["name"] = user.Username
 			}
-		case "email":
+		case ScopeEmail:
 			if user.Email != "" {
 				claims["email"] = user.Email
 				// new-api verifies email addresses at bind time; a stored,
 				// non-empty address is treated as verified.
 				claims["email_verified"] = true
 			}
-		case "groups":
+		case ScopeGroups:
 			groups := []string{user.Group}
 			groups = append(groups, user.GetExtraGroups()...)
 			claims["groups"] = dedupeNonEmpty(groups)

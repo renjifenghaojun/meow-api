@@ -26,7 +26,10 @@ type oauthClientRequest struct {
 	RedirectUris []string `json:"redirect_uris"`
 	Scopes       []string `json:"scopes"`
 	IsPublic     bool     `json:"is_public"`
-	Status       int      `json:"status"`
+	// Trusted is honored only for an admin/root caller (see applyOAuthClientRequest);
+	// a common user's value is ignored so the sensitive-scope gate cannot be bypassed.
+	Trusted bool `json:"trusted"`
+	Status  int  `json:"status"`
 }
 
 // oauthClientResponse is the client shape returned to the dashboard, decoding
@@ -42,6 +45,7 @@ type oauthClientResponse struct {
 	RedirectUris []string `json:"redirect_uris"`
 	Scopes       []string `json:"scopes"`
 	IsPublic     bool     `json:"is_public"`
+	Trusted      bool     `json:"trusted"`
 	Status       int      `json:"status"`
 	OwnerUserId  int      `json:"owner_user_id"`
 	CreatedAt    int64    `json:"created_at"`
@@ -59,6 +63,7 @@ func newOAuthClientResponse(client *model.OAuthClient) oauthClientResponse {
 		RedirectUris: client.GetRedirectUris(),
 		Scopes:       client.GetScopes(),
 		IsPublic:     client.IsPublic,
+		Trusted:      client.Trusted,
 		Status:       client.Status,
 		OwnerUserId:  client.OwnerUserId,
 		CreatedAt:    client.CreatedAt,
@@ -69,12 +74,26 @@ func newOAuthClientResponse(client *model.OAuthClient) oauthClientResponse {
 // applyOAuthClientRequest copies request fields onto a client, rejecting scopes
 // outside the server catalog. Redirect-URI shape and non-empty scopes/URIs are
 // enforced by OAuthClient.validate() on Insert/Update.
-func applyOAuthClientRequest(client *model.OAuthClient, req *oauthClientRequest) error {
+//
+// Two access-control invariants are enforced here server-side (never trusting
+// the client payload, OWASP ASVS V4):
+//   - Trusted is an administrator-only attribute; a non-admin caller's value is
+//     ignored, leaving the stored value unchanged (false for a new client).
+//   - A sensitive scope (wallet.topup / apikeys.manage) may be held only while
+//     the client is Trusted, re-checked at write time (defense in depth), not
+//     only when a token is later issued.
+func applyOAuthClientRequest(c *gin.Context, client *model.OAuthClient, req *oauthClientRequest) error {
 	scopes := oauthserver.ParseScopes(strings.Join(req.Scopes, " "))
 	for _, scope := range scopes {
 		if !oauthserver.IsSupportedScope(scope) {
 			return errors.New("unknown scope: " + scope)
 		}
+	}
+	if callerIsOAuthAdmin(c) {
+		client.Trusted = req.Trusted
+	}
+	if oauthserver.ContainsSensitiveScope(scopes) && !client.Trusted {
+		return errors.New("敏感 scope 需要管理员先将该应用标记为可信（trusted）")
 	}
 	encodedUris, err := common.Marshal(req.RedirectUris)
 	if err != nil {
@@ -179,7 +198,7 @@ func CreateOAuthClient(c *gin.Context) {
 		ClientId:    model.GenerateOAuthClientId(),
 		OwnerUserId: c.GetInt("id"),
 	}
-	if err := applyOAuthClientRequest(client, &req); err != nil {
+	if err := applyOAuthClientRequest(c, client, &req); err != nil {
 		common.ApiErrorMsg(c, err.Error())
 		return
 	}
@@ -224,7 +243,7 @@ func UpdateOAuthClient(c *gin.Context) {
 		return
 	}
 	wasPublic := client.IsPublic
-	if err := applyOAuthClientRequest(client, &req); err != nil {
+	if err := applyOAuthClientRequest(c, client, &req); err != nil {
 		common.ApiErrorMsg(c, err.Error())
 		return
 	}

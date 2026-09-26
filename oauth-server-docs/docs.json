@@ -51,7 +51,7 @@
               "endpoints/token",
               "endpoints/userinfo",
               "endpoints/revoke",
-              "endpoints/keys"
+              "endpoints/scoped-api"
             ]
           }
         ]
