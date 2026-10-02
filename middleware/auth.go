@@ -545,6 +545,11 @@ func oauthRelayAuth(c *gin.Context, accessToken string) bool {
 	c.Set("token_id", 0)
 	c.Set("token_unlimited_quota", true)
 	c.Set("token_model_limit_enabled", false)
+	if grant.ClientId != "" {
+		if client, err := model.GetOAuthClientByClientId(grant.ClientId); err == nil && client.Name != "" {
+			c.Set("token_name", client.Name)
+		}
+	}
 	return true
 }
 

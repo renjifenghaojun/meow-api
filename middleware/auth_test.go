@@ -369,12 +369,25 @@ func seedRelayUser(t *testing.T, id, status int) {
 
 func seedRelayToken(t *testing.T, plain string, userId int, scopes string) {
 	t.Helper()
+	seedRelayTokenWithClient(t, plain, userId, scopes, "cli_relay")
+}
+
+func seedRelayTokenWithClient(t *testing.T, plain string, userId int, scopes string, clientId string) {
+	t.Helper()
 	rec := &model.OAuthToken{
-		GrantId: "grant-" + plain, ClientId: "cli_relay", UserId: userId, Scopes: scopes,
+		GrantId: "grant-" + plain, ClientId: clientId, UserId: userId, Scopes: scopes,
 		AccessExpiresAt: time.Now().Add(time.Hour).Unix(), RefreshExpiresAt: time.Now().Add(time.Hour).Unix(),
 	}
 	rec.SetAccessToken(plain)
 	require.NoError(t, rec.Insert())
+}
+
+func seedRelayClient(t *testing.T, clientId, name string) {
+	t.Helper()
+	require.NoError(t, model.DB.Create(&model.OAuthClient{
+		ClientId: clientId, Name: name, Scopes: oauthserver.ScopeModelsInvoke,
+		RedirectUris: `["https://example.com/cb"]`, Status: model.OAuthClientStatusEnabled,
+	}).Error)
 }
 
 func newRelayContext() (*gin.Context, *httptest.ResponseRecorder) {
@@ -391,6 +404,7 @@ func newRelayContext() (*gin.Context, *httptest.ResponseRecorder) {
 func TestOAuthRelayAuthDrawsUserWallet(t *testing.T) {
 	setupOAuthRelayMiddlewareTest(t)
 	seedRelayUser(t, 7, common.UserStatusEnabled)
+	seedRelayClient(t, "cli_relay", "Relay App")
 	seedRelayToken(t, "at_relay_ok", 7, "openid "+oauthserver.ScopeModelsInvoke)
 
 	c, _ := newRelayContext()
@@ -402,6 +416,18 @@ func TestOAuthRelayAuthDrawsUserWallet(t *testing.T) {
 	assert.False(t, c.GetBool("token_model_limit_enabled"), "no per-token model limit under user-level quota")
 	assert.Equal(t, "default", common.GetContextKeyString(c, constant.ContextKeyUsingGroup))
 	assert.Equal(t, "default", common.GetContextKeyString(c, constant.ContextKeyUserGroup))
+	assert.Equal(t, "Relay App", c.GetString("token_name"), "oauth relay must carry the app name for logs")
+}
+
+func TestOAuthRelayAuthTokenNameFallback(t *testing.T) {
+	setupOAuthRelayMiddlewareTest(t)
+	seedRelayUser(t, 7, common.UserStatusEnabled)
+	// Token points at a client id that has no OAuthClient row (or blank name).
+	seedRelayTokenWithClient(t, "at_missing_client", 7, "openid "+oauthserver.ScopeModelsInvoke, "cli_missing")
+
+	c, _ := newRelayContext()
+	require.True(t, oauthRelayAuth(c, "at_missing_client"))
+	assert.Equal(t, "", c.GetString("token_name"), "missing/blank client name must not set token_name")
 }
 
 func TestOAuthRelayAuthRejections(t *testing.T) {
