@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { flexRender, type Cell } from '@tanstack/react-table'
-import { ChevronRight, KeyRound } from 'lucide-react'
+import { AppWindow, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -235,7 +235,7 @@ export function CommonLogMobileCard<TData>(props: {
                 <StatusBadge
                   label={field.value}
                   copyable={false}
-                  icon={KeyRound}
+                  icon={AppWindow}
                   className='border-border/60 bg-muted/30 text-foreground max-w-full rounded-md border px-1.5 py-0.5 text-sm'
                 />
               )
