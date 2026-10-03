@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from '@tanstack/react-table'
-import { AppWindow, GitBranch, Sparkles } from 'lucide-react'
+import { AppWindow, GitBranch, KeyRound, Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -628,7 +628,7 @@ export function useCommonLogsColumns(
                 <TooltipTrigger render={<div className='max-w-full' />}>
                   <StatusBadge
                     label={displayName}
-                    icon={AppWindow}
+                    icon={log.token_id === 0 ? AppWindow : KeyRound}
                     copyText={sensitiveVisible ? tokenName : undefined}
                     size='sm'
                     showDot={false}
