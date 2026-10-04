@@ -7091,6 +7091,27 @@
     "Send requests to the model API and spend your quota": "モデル API にリクエストを送信し、あなたのクォータを消費します",
     "Sensitive": "機微",
     "Trusted application": "信頼済みアプリケーション",
-    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "管理者専用。このアプリケーションがウォレットのチャージや API キー管理などの機微な権限を要求するには、事前に信頼済みとして設定する必要があります。"
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "管理者専用。このアプリケーションがウォレットのチャージや API キー管理などの機微な権限を要求するには、事前に信頼済みとして設定する必要があります。",
+    "Sole operator routing": "単独プロバイダーのルーティング",
+    "Pin a model to one channel. Requests try that channel first and reach the other channels only while it is unavailable; models without a mapping keep the default routing.": "モデルを 1 つのチャネルに固定します。リクエストはそのチャネルを最初に試し、そのチャネルが利用できない場合のみ他のチャネルへ切り替えます。対応付けのないモデルは既定のルーティングのままです。",
+    "Enable sole operator routing": "単独プロバイダーのルーティングを有効にする",
+    "Turn off to keep every model on the default routing logic.": "オフにすると、すべてのモデルが既定のルーティングロジックを使います。",
+    "Operator editor mode": "プロバイダー編集モード",
+    "No models pinned yet": "まだ固定されたモデルはありません",
+    "Add a model to route it through one channel.": "モデルを追加して、1 つのチャネル経由でのルーティングを設定します。",
+    "Sole operator table": "単独プロバイダー一覧",
+    "Operator channel": "プロバイダーチャネル",
+    "Not found": "見つかりません",
+    "Model operator map JSON": "単独プロバイダーマップ JSON",
+    "Maps a model name to its operator channel id.": "モデル名をプロバイダーチャネル ID に対応付けます。",
+    "model pinned": "モデル固定",
+    "models pinned": "モデル固定",
+    "Channel list unavailable": "チャネル一覧を取得できません",
+    "Model list unavailable": "モデル一覧を取得できません",
+    "Delete Model Mapping": "モデルマッピングを削除",
+    "Delete the operator mapping for “{{model}}”? Save your changes to apply the removal.": "モデル「{{model}}」の単独プロバイダーマッピングを削除しますか？変更を保存すると削除が反映されます。",
+    "Model operator map must be a JSON object": "単独プロバイダーマップは JSON オブジェクトである必要があります",
+    "Model name must not be empty": "モデル名を空にすることはできません",
+    "Sole operator mappings": "単独プロバイダーのマッピング"
   }
 }

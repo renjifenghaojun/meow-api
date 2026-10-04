@@ -117,6 +117,24 @@ func TestRequestPolicyDatabaseMatrix(t *testing.T) {
 			assert.Equal(t, "2", option.Value)
 			loadOptionsFromDatabase()
 			assert.Equal(t, "strict", CurrentRequestPolicy().Affinity.SessionMode, "a failed save keeps the persisted global mode")
+			operatorMap := `{"gpt-4o":12}`
+			require.NoError(t, UpdateRequestPolicyOptions(map[string]string{"model_operator_setting.enabled": "true", "model_operator_setting.model_channel_map": operatorMap}))
+			operatorSnapshot := CurrentRequestPolicy()
+			assert.True(t, operatorSnapshot.ModelOperator.Enabled)
+			assert.Equal(t, map[string]int{"gpt-4o": 12}, operatorSnapshot.ModelOperator.ModelChannelMap)
+			loadOptionsFromDatabase()
+			assert.Equal(t, operatorMap, CurrentRequestPolicy().Options["model_operator_setting.model_channel_map"], "the operator map survives a reload without losing models")
+			assert.True(t, CurrentRequestPolicy().ModelOperator.Enabled, "the enabled switch survives a reload too")
+			for _, value := range []string{"[", `{"gpt-4o":0}`, `{"":"3"}`} {
+				assert.Error(t, UpdateRequestPolicyOptions(map[string]string{"model_operator_setting.model_channel_map": value}), value)
+				assert.Equal(t, operatorMap, CurrentRequestPolicy().Options["model_operator_setting.model_channel_map"], "a rejected operator map keeps the stored one")
+			}
+			operatorSnapshot = CurrentRequestPolicy()
+			assert.Error(t, UpdateRequestPolicyOptions(map[string]string{"model_operator_setting.unknown": "1"}), "only the documented operator fields are accepted")
+			assert.Same(t, operatorSnapshot, CurrentRequestPolicy())
+			require.NoError(t, UpdateRequestPolicyOptions(map[string]string{"model_operator_setting.enabled": "false"}))
+			assert.False(t, CurrentRequestPolicy().ModelOperator.Enabled)
+			assert.Equal(t, map[string]int{"gpt-4o": 12}, CurrentRequestPolicy().ModelOperator.ModelChannelMap, "switching the mechanism off keeps the map for a later re-enable")
 		})
 	}
 }

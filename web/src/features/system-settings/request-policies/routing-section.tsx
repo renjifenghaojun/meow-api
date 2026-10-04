@@ -33,6 +33,7 @@ import { SettingsPageFormActions } from '../components/settings-page-context'
 import { ChannelAffinitySection } from '../general/channel-affinity'
 import { safeNumberFieldProps } from '../utils/numeric-field'
 import { getPolicyConfig, type PolicyConfig } from './api'
+import { ModelOperatorSection } from './model-operator-section'
 import { policyLabel } from './policy-label'
 import { RetrySection } from './retry-section'
 import {
@@ -98,6 +99,12 @@ function RoutingPolicyEditor(props: { config: PolicyConfig }) {
             JSON.stringify(JSON.parse(previous || '[]'))
           )
         }
+        if (key === 'model_operator_setting.model_channel_map') {
+          return (
+            JSON.stringify(JSON.parse(value)) !==
+            JSON.stringify(JSON.parse(previous || '{}'))
+          )
+        }
         if (key === 'AutomaticRetryStatusCodes') {
           return value !== parseHttpStatusCodeRules(previous).normalized
         }
@@ -118,7 +125,7 @@ function RoutingPolicyEditor(props: { config: PolicyConfig }) {
   const submit = form.handleSubmit((submitted) => save(submitted))
 
   // The session rules stay in the main column, between the defaults they
-  // inherit and the retry budget.
+  // inherit and the retry budget; the sole operator mapping follows them.
   return (
     <Form {...form}>
       <div className='min-w-0 space-y-5'>
@@ -140,6 +147,19 @@ function RoutingPolicyEditor(props: { config: PolicyConfig }) {
                   globalSessionMode={
                     values.channel_affinity_setting.session_mode
                   }
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name='model_operator_setting.model_channel_map'
+            render={({ field }) => (
+              <FormItem>
+                <ModelOperatorSection
+                  mapJson={field.value}
+                  onMapChange={field.onChange}
                 />
                 <FormMessage />
               </FormItem>

@@ -15,6 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/jsplugin"
 	"github.com/QuantumNous/new-api/relaykit/types"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/gin-gonic/gin"
 )
 
@@ -235,28 +236,83 @@ func selectChannelWithFilters(param *RetryParam, filters []dto.ChannelFilter) (*
 		if err != nil {
 			return nil, param.TokenGroup, err
 		}
-		if channel != nil && len(groups) > 1 {
-			// Align routing and billing with the group that actually matched:
-			// group ratio, group-group special ratio and logs follow it.
-			channelGroups := strings.Split(channel.Group, ",")
-			for _, group := range groups {
-				if !slices.Contains(channelGroups, group) {
-					continue
-				}
-				if group != param.TokenGroup {
-					common.SetContextKey(param.Ctx, constant.ContextKeyUsingGroup, group)
-					common.SetContextKey(param.Ctx, constant.ContextKeyAutoGroup, group)
-					selectGroup = group
-				}
-				break
-			}
-		}
+		selectGroup = alignSelectedGroup(param, groups, channel, selectGroup)
 	}
 	return channel, selectGroup, nil
 }
 
+// alignSelectedGroup points billing and logging at the group the selected
+// channel actually belongs to, so a channel reached through a wider group pool
+// is still priced by its own group.
+func alignSelectedGroup(param *RetryParam, groups []string, channel *model.Channel, selectGroup string) string {
+	if channel == nil || len(groups) <= 1 {
+		return selectGroup
+	}
+	channelGroups := strings.Split(channel.Group, ",")
+	for _, group := range groups {
+		if !slices.Contains(channelGroups, group) {
+			continue
+		}
+		if group != param.TokenGroup {
+			common.SetContextKey(param.Ctx, constant.ContextKeyUsingGroup, group)
+			common.SetContextKey(param.Ctx, constant.ContextKeyAutoGroup, group)
+			selectGroup = group
+		}
+		break
+	}
+	return selectGroup
+}
+
+// tryModelOperatorChannel resolves the model's designated "sole operator"
+// channel for the first attempt of a request. A model mapped here is routed
+// to its operator channel ahead of the default priority/weight logic; any
+// unusable state (unknown channel id, disabled channel, rejected by the
+// request's channel filters) makes the function return nil so selection falls
+// back to the default logic. Retries (retry > 0) never re-pin the operator:
+// once the operator attempt fails, the normal retry progression takes over.
+func tryModelOperatorChannel(param *RetryParam, filters []dto.ChannelFilter) *model.Channel {
+	operatorChannelID := operation_setting.GetModelOperatorSetting().OperatorChannelID(param.ModelName)
+	if operatorChannelID == 0 || param.GetRetry() != 0 {
+		return nil
+	}
+	channel, err := model.CacheGetChannel(operatorChannelID)
+	if err != nil || channel == nil || channel.Status != common.ChannelStatusEnabled {
+		return nil
+	}
+	// The channel must serve the model in one of the groups this request could
+	// be routed within, otherwise the mapping would bypass the group pool and
+	// price the request with a group the channel does not belong to.
+	if !model.IsChannelEnabledForAnyGroupModel(selectionGroups(param), param.ModelName, operatorChannelID) {
+		return nil
+	}
+	if ok, _ := model.ChannelSatisfiesFilters(channel, param.ModelName, filters); !ok {
+		return nil
+	}
+	return channel
+}
+
+// selectionGroups returns the group pool the request may be routed within,
+// mirroring the pools selectChannelWithFilters searches.
+func selectionGroups(param *RetryParam) []string {
+	userGroup := common.GetContextKeyString(param.Ctx, constant.ContextKeyUserGroup)
+	if param.TokenGroup == "auto" {
+		return GetRequestAutoGroups(param.Ctx, userGroup)
+	}
+	if param.TokenGroup == userGroup {
+		if userGroups, ok := common.GetContextKeyType[[]string](param.Ctx, constant.ContextKeyUserGroups); ok && len(userGroups) > 1 {
+			return userGroups
+		}
+	}
+	return []string{param.TokenGroup}
+}
+
 func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, error) {
-	channel, selectGroup, err := selectChannelWithFilters(param, channelExclusionFilters(param, true))
+	filters := channelExclusionFilters(param, true)
+	if operator := tryModelOperatorChannel(param, filters); operator != nil {
+		logger.LogDebug(param.Ctx, "model %s routed to sole operator channel #%d", param.ModelName, operator.Id)
+		return operator, alignSelectedGroup(param, selectionGroups(param), operator, param.TokenGroup), nil
+	}
+	channel, selectGroup, err := selectChannelWithFilters(param, filters)
 	if err == nil || !errors.Is(err, model.ErrUserChannelsExhausted) {
 		return channel, selectGroup, err
 	}

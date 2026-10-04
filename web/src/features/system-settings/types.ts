@@ -422,6 +422,11 @@ export type OperationsSettings = {
   'perf_metrics_setting.retention_days': number
 }
 
+export type ModelOperatorSettings = {
+  'model_operator_setting.enabled': boolean
+  'model_operator_setting.model_channel_map': string
+}
+
 export type SecuritySettings = {
   ModelRequestRateLimitEnabled: boolean
   ModelRequestRateLimitCount: number

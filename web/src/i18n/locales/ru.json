@@ -7091,6 +7091,27 @@
     "Send requests to the model API and spend your quota": "Отправка запросов к API моделей и расход вашей квоты",
     "Sensitive": "Конфиденциально",
     "Trusted application": "Доверенное приложение",
-    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Только для администраторов. Требуется, прежде чем это приложение сможет запрашивать конфиденциальные разрешения, такие как пополнение кошелька или управление API-ключами."
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Только для администраторов. Требуется, прежде чем это приложение сможет запрашивать конфиденциальные разрешения, такие как пополнение кошелька или управление API-ключами.",
+    "Sole operator routing": "Маршрутизация единственного оператора",
+    "Pin a model to one channel. Requests try that channel first and reach the other channels only while it is unavailable; models without a mapping keep the default routing.": "Закрепите модель за одним каналом. Запросы сначала пробуют этот канал и обращаются к другим каналам только пока он недоступен; модели без сопоставления сохраняют маршрутизацию по умолчанию.",
+    "Enable sole operator routing": "Включить маршрутизацию единственного оператора",
+    "Turn off to keep every model on the default routing logic.": "Отключите, чтобы все модели использовали логику маршрутизации по умолчанию.",
+    "Operator editor mode": "Режим редактора оператора",
+    "No models pinned yet": "Пока нет закреплённых моделей",
+    "Add a model to route it through one channel.": "Добавьте модель, чтобы направлять её через один канал.",
+    "Sole operator table": "Таблица единственных операторов",
+    "Operator channel": "Канал оператора",
+    "Not found": "Не найдено",
+    "Model operator map JSON": "JSON сопоставления операторов",
+    "Maps a model name to its operator channel id.": "Сопоставляет имя модели с идентификатором канала оператора.",
+    "model pinned": "модель закреплена",
+    "models pinned": "моделей закреплено",
+    "Channel list unavailable": "Список каналов недоступен",
+    "Model list unavailable": "Список моделей недоступен",
+    "Delete Model Mapping": "Удалить сопоставление модели",
+    "Delete the operator mapping for “{{model}}”? Save your changes to apply the removal.": "Удалить сопоставление оператора для «{{model}}»? Сохраните изменения, чтобы применить удаление.",
+    "Model operator map must be a JSON object": "Сопоставление операторов должно быть объектом JSON",
+    "Model name must not be empty": "Имя модели не может быть пустым",
+    "Sole operator mappings": "Сопоставления единственного оператора"
   }
 }

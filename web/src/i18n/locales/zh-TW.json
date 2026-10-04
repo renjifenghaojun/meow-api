@@ -7091,6 +7091,27 @@
     "Send requests to the model API and spend your quota": "向模型 API 傳送請求並消耗你的配額",
     "Sensitive": "敏感",
     "Trusted application": "受信任的應用程式",
-    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "僅限管理員。此應用程式需先被標記為受信任，才能申請錢包儲值、API 金鑰管理等敏感權限。"
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "僅限管理員。此應用程式需先被標記為受信任，才能申請錢包儲值、API 金鑰管理等敏感權限。",
+    "Sole operator routing": "唯一電信商路由",
+    "Pin a model to one channel. Requests try that channel first and reach the other channels only while it is unavailable; models without a mapping keep the default routing.": "將模型固定到單一渠道。請求會先嘗試該渠道，只有在它不可用時才會轉到其他渠道；未設定對應的模型保持預設路由。",
+    "Enable sole operator routing": "啟用唯一電信商路由",
+    "Turn off to keep every model on the default routing logic.": "關閉後所有模型保持預設路由邏輯。",
+    "Operator editor mode": "電信商編輯模式",
+    "No models pinned yet": "尚未固定任何模型",
+    "Add a model to route it through one channel.": "新增模型並指定其唯一電信商渠道。",
+    "Sole operator table": "唯一電信商列表",
+    "Operator channel": "電信商渠道",
+    "Not found": "不存在",
+    "Model operator map JSON": "唯一電信商對應 JSON",
+    "Maps a model name to its operator channel id.": "將模型名稱對應到其電信商渠道 ID。",
+    "model pinned": "個模型已固定",
+    "models pinned": "個模型已固定",
+    "Channel list unavailable": "渠道列表不可用",
+    "Model list unavailable": "模型列表不可用",
+    "Delete Model Mapping": "刪除模型對應",
+    "Delete the operator mapping for “{{model}}”? Save your changes to apply the removal.": "刪除模型「{{model}}」的唯一電信商對應？儲存後將生效。",
+    "Model operator map must be a JSON object": "唯一電信商對應必須是 JSON 物件",
+    "Model name must not be empty": "模型名稱不能為空",
+    "Sole operator mappings": "唯一電信商對應"
   }
 }

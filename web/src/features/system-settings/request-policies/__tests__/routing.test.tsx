@@ -17,6 +17,7 @@ import {
 import userEvent from '@testing-library/user-event'
 import i18next from 'i18next'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 import { api } from '@/lib/api'
@@ -49,7 +50,18 @@ const options = {
     },
   ]),
   AutomaticRetryStatusCodes: '429,500-503',
+  'model_operator_setting.enabled': 'true',
+  'model_operator_setting.model_channel_map': '{}',
 }
+// The sole operator picker offers every channel, so the fixture lists two
+// enabled channels plus a disabled one and leaves an id gap for unknown
+// channels that a stored mapping may still point at.
+const operatorChannels = [
+  { id: 1, type: 1, name: 'Primary operator', status: 1 },
+  { id: 2, type: 1, name: 'Backup operator', status: 1 },
+  { id: 3, type: 1, name: 'Retired operator', status: 2 },
+]
+const operatorModels = ['gpt-4o', 'gpt-4o-mini']
 let currentOptions: Record<string, string>
 let client: QueryClient
 beforeEach(() => {
@@ -57,24 +69,45 @@ beforeEach(() => {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   currentOptions = { ...options }
-  vi.spyOn(api, 'get').mockImplementation(async (url) => ({
-    data: {
-      success: true,
-      data:
-        url === '/api/option/request_policy'
-          ? {
-              options: currentOptions,
-            }
-          : {
-              enabled: true,
-              total: 2,
-              unknown: 0,
-              by_rule_name: { 'Session rule': 2 },
-              cache_capacity: 100000,
-              cache_algo: 'lru',
-            },
-    },
-  }))
+  vi.spyOn(toast, 'info').mockImplementation(() => '')
+  vi.spyOn(toast, 'error').mockImplementation(() => '')
+  vi.spyOn(api, 'get').mockImplementation(async (url, config) => {
+    const params = (config as { params?: { p?: number } } | undefined)?.params
+    if (url === '/api/channel/models_enabled') {
+      return { data: { success: true, data: [...operatorModels] } }
+    }
+    if (url === '/api/channel') {
+      return {
+        data: {
+          success: true,
+          data: {
+            items: params?.p === 1 ? operatorChannels : [],
+            total: operatorChannels.length,
+            page: params?.p ?? 1,
+            page_size: 100,
+          },
+        },
+      }
+    }
+    return {
+      data: {
+        success: true,
+        data:
+          url === '/api/option/request_policy'
+            ? {
+                options: currentOptions,
+              }
+            : {
+                enabled: true,
+                total: 2,
+                unknown: 0,
+                by_rule_name: { 'Session rule': 2 },
+                cache_capacity: 100000,
+                cache_algo: 'lru',
+              },
+      },
+    }
+  })
   vi.spyOn(api, 'patch').mockImplementation(async (_url, request) => {
     currentOptions = {
       ...currentOptions,
@@ -117,6 +150,31 @@ function show() {
       </RouterContextProvider>
     </QueryClientProvider>
   )
+}
+// The session rules and the sole operator map each ship a Visual/JSON editor,
+// so their tabs and panels are scoped to their own editor instead of being
+// guessed from a name both editors share. The scope comes from the region each
+// editor wraps itself in, because a Base UI tab list keeps no accessible name
+// that a role query can match.
+const EDITOR_SECTIONS = {
+  rules: 'Session rules',
+  operator: 'Sole operator mappings',
+} as const
+type Editor = keyof typeof EDITOR_SECTIONS
+function editorSection(editor: Editor) {
+  return screen.getByRole('region', { name: EDITOR_SECTIONS[editor] })
+}
+function editorTab(name: 'Visual' | 'JSON', editor: Editor) {
+  return within(editorSection(editor)).getByRole('tab', { name })
+}
+function editorPanel(name: 'Visual' | 'JSON', editor: Editor) {
+  return within(editorSection(editor)).getByRole('tabpanel', { name })
+}
+function findEditorTab(name: 'Visual' | 'JSON', editor: Editor) {
+  return waitFor(() => editorTab(name, editor))
+}
+function findEditorPanel(name: 'Visual' | 'JSON', editor: Editor) {
+  return waitFor(() => editorPanel(name, editor))
 }
 it('opens global affinity settings and the complete rules table without switching views', async () => {
   show()
@@ -391,12 +449,12 @@ it('switching between visual and JSON editing preserves the shared draft', async
     }),
     { target: { value: '7' } }
   )
-  await userEvent.click(screen.getByRole('tab', { name: 'JSON' }))
+  await userEvent.click(await findEditorTab('JSON', 'rules'))
   const editor = await screen.findByRole('textbox', { name: 'Rules JSON' })
   const updated = JSON.parse(options['channel_affinity_setting.rules'])
   updated[0].name = 'JSON rule'
   fireEvent.input(editor, { target: { value: JSON.stringify(updated) } })
-  await userEvent.click(screen.getByRole('tab', { name: 'Visual' }))
+  await userEvent.click(await findEditorTab('Visual', 'rules'))
   expect(screen.getByRole('table')).toHaveTextContent('JSON rule')
   expect(
     screen.getByRole('spinbutton', {
@@ -609,13 +667,13 @@ it('disabling global affinity preserves every rule and saves zero retries as zer
 
 it('invalid JSON stays editable and prevents saving', async () => {
   show()
-  await userEvent.click(await screen.findByRole('tab', { name: 'JSON' }))
+  await userEvent.click(await findEditorTab('JSON', 'rules'))
   const editor = await screen.findByRole('textbox', { name: 'Rules JSON' })
   fireEvent.input(editor, { target: { value: '[' } })
   expect(screen.getByRole('button', { name: 'Add Rule' })).toBeDisabled()
   expect(screen.getByRole('button', { name: 'Fill Templates' })).toBeDisabled()
-  await userEvent.click(screen.getByRole('tab', { name: 'Visual' }))
-  expect(screen.getByRole('tab', { name: 'JSON' })).toHaveAttribute(
+  await userEvent.click(await findEditorTab('Visual', 'rules'))
+  expect(editorTab('JSON', 'rules')).toHaveAttribute(
     'aria-selected',
     'true'
   )
@@ -649,10 +707,10 @@ it('cache cleanup uses the existing cache API without saving the draft', async (
 it('keyboard navigation switches editor tabs and restores the visual draft', async () => {
   const user = userEvent.setup()
   show()
-  const visual = await screen.findByRole('tab', { name: 'Visual' })
+  const visual = await findEditorTab('Visual', 'rules')
   visual.focus()
   await user.keyboard('{ArrowRight}{Enter}')
-  expect(screen.getByRole('tab', { name: 'JSON' })).toHaveAttribute(
+  expect(editorTab('JSON', 'rules')).toHaveAttribute(
     'aria-selected',
     'true'
   )
@@ -684,7 +742,7 @@ it('cancelling deletion from the rule menu leaves the rule in the draft', async 
 it('the empty state can fill templates without saving them to the server', async () => {
   currentOptions['channel_affinity_setting.rules'] = '[]'
   show()
-  const panel = await screen.findByRole('tabpanel', { name: 'Visual' })
+  const panel = await findEditorPanel('Visual', 'rules')
   expect(within(panel).getByText('No rules yet')).toBeVisible()
   await userEvent.click(
     within(panel).getByRole('button', { name: 'Fill Templates' })
@@ -795,3 +853,260 @@ it.each([
     expect(api.patch).not.toHaveBeenCalled()
   }
 )
+
+async function findOperatorPanel(name: 'Visual' | 'JSON' = 'Visual') {
+  return findEditorPanel(name, 'operator')
+}
+function soleOperatorMap() {
+  return JSON.stringify({ 'gpt-4o': 1, 'gpt-4o-mini': 2 })
+}
+async function pickOperatorChannel(index: number, channel: RegExp) {
+  const rows = await screen.findAllByRole('combobox', {
+    name: 'Operator channel',
+  })
+  await userEvent.click(rows[index])
+  await userEvent.click(await screen.findByRole('option', { name: channel }))
+}
+
+it('starts with no sole operator mapping and an enabled routing switch', async () => {
+  show()
+  expect(
+    await screen.findByRole('switch', { name: 'Enable sole operator routing' })
+  ).toBeChecked()
+  expect(screen.getByRole('button', { name: 'Add Model' })).toBeEnabled()
+  const panel = await findOperatorPanel()
+  expect(within(panel).getByText('No models pinned yet')).toBeVisible()
+  expect(
+    within(panel).getByText(
+      'Add a model to route it through one channel.'
+    )
+  ).toBeVisible()
+  expect(screen.getByText('0')).toBeVisible()
+  expect(screen.getByText('models pinned')).toBeVisible()
+  expect(api.patch).not.toHaveBeenCalled()
+})
+
+it('pins a new model to the chosen channel and saves only the operator map', async () => {
+  show()
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Add Model' })
+  )
+  await userEvent.type(
+    (await screen.findAllByRole('combobox', { name: 'Model' }))[0],
+    'gpt-4o'
+  )
+  await pickOperatorChannel(0, /#2 Backup operator/)
+  await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+  await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(1))
+  expect(vi.mocked(api.patch).mock.calls[0][1]).toEqual({
+    options: {
+      'model_operator_setting.model_channel_map': '{\n  "gpt-4o": 2\n}',
+    },
+  })
+})
+
+it('keeps a disabled and an unknown operator channel visible without marking the form dirty', async () => {
+  currentOptions['model_operator_setting.model_channel_map'] = JSON.stringify(
+    { 'gpt-4o': 3, 'gpt-4o-mini': 9 }
+  )
+  show()
+  const section = await screen.findByRole('region', {
+    name: 'Sole operator mappings',
+  })
+  await waitFor(() =>
+    expect(
+      within(section).getAllByRole('combobox', { name: 'Operator channel' })[0]
+    ).toHaveValue('#3 Retired operator')
+  )
+  expect(within(section).getByText('Retired operator')).toBeVisible()
+  expect(within(section).getByText('#9')).toBeVisible()
+  expect(within(section).getAllByRole('combobox', { name: 'Model' })[1])
+    .toHaveValue('gpt-4o-mini')
+  await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+  await waitFor(() =>
+    expect(toast.info).toHaveBeenCalledWith('No changes to save')
+  )
+  expect(api.patch).not.toHaveBeenCalled()
+})
+
+it('deletes a sole operator mapping only after the confirmation and saves the rest', async () => {
+  currentOptions['model_operator_setting.model_channel_map'] = soleOperatorMap()
+  show()
+  const section = await screen.findByRole('region', {
+    name: 'Sole operator mappings',
+  })
+  await waitFor(() =>
+    expect(
+      within(section).getAllByRole('combobox', { name: 'Model' })
+    ).toHaveLength(2)
+  )
+  await userEvent.click(
+    within(section).getAllByRole('button', { name: 'Delete Model' })[1]
+  )
+  const dialog = screen.getByRole('alertdialog')
+  expect(dialog).toHaveTextContent('gpt-4o-mini')
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+  expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+  expect(within(section).getAllByRole('combobox', { name: 'Model' })).toHaveLength(
+    2
+  )
+  await userEvent.click(
+    within(section).getAllByRole('button', { name: 'Delete Model' })[1]
+  )
+  const confirm = screen.getByRole('alertdialog')
+  await userEvent.click(within(confirm).getByRole('button', { name: 'Delete' }))
+  await waitFor(() =>
+    expect(
+      within(section).getAllByRole('combobox', { name: 'Model' })
+    ).toHaveLength(1)
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+  await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(1))
+  expect(vi.mocked(api.patch).mock.calls[0][1]).toEqual({
+    options: {
+      'model_operator_setting.model_channel_map': '{\n  "gpt-4o": 1\n}',
+    },
+  })
+})
+
+it('treats a reformatted sole operator map as unchanged and saves a real edit', async () => {
+  currentOptions['model_operator_setting.model_channel_map'] =
+    '{ "gpt-4o": 1 }'
+  show()
+  await userEvent.click(await findEditorTab('JSON', 'operator'))
+  const editor = await screen.findByRole('textbox', {
+    name: 'Model operator map JSON',
+  })
+  fireEvent.input(editor, {
+    target: { value: '{\n  "gpt-4o": 1\n}' },
+  })
+  await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+  await waitFor(() =>
+    expect(toast.info).toHaveBeenCalledWith('No changes to save')
+  )
+  expect(api.patch).not.toHaveBeenCalled()
+  fireEvent.input(editor, {
+    target: { value: '{\n  "gpt-4o": 2\n}' },
+  })
+  await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+  await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(1))
+  expect(vi.mocked(api.patch).mock.calls[0][1]).toEqual({
+    options: {
+      'model_operator_setting.model_channel_map': '{\n  "gpt-4o": 2\n}',
+    },
+  })
+})
+
+it.each([
+  ['[', 'Invalid JSON format'],
+  ['[1]', 'Model operator map must be a JSON object'],
+] as const)(
+  'refuses to leave the JSON editor for %s and blocks the save',
+  async (value, message) => {
+    show()
+    await userEvent.click(await findEditorTab('JSON', 'operator'))
+    const editor = await screen.findByRole('textbox', {
+      name: 'Model operator map JSON',
+    })
+    fireEvent.input(editor, { target: { value } })
+    await userEvent.click(await findEditorTab('Visual', 'operator'))
+    expect(toast.error).toHaveBeenCalledWith(message)
+    expect(editorTab('JSON', 'operator')).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    expect(await screen.findByText(message)).toBeVisible()
+    expect(api.patch).not.toHaveBeenCalled()
+  }
+)
+
+it('blocks the save when a sole operator row names no channel', async () => {
+  show()
+  await userEvent.click(await findEditorTab('JSON', 'operator'))
+  fireEvent.input(
+    await screen.findByRole('textbox', {
+      name: 'Model operator map JSON',
+    }),
+    { target: { value: '{"gpt-4o": 0}' } }
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+  expect(
+    await screen.findByText(
+      'Channel id must be a positive integer for gpt-4o'
+    )
+  ).toBeVisible()
+  expect(api.patch).not.toHaveBeenCalled()
+})
+
+it('blocks the save while a sole operator row is still unfilled', async () => {
+  show()
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Add Model' })
+  )
+  const section = await screen.findByRole('region', {
+    name: 'Sole operator mappings',
+  })
+  await waitFor(() =>
+    expect(
+      within(section).getByRole('combobox', { name: 'Model' })
+    ).toHaveValue('')
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+  expect(await screen.findByText('Model name must not be empty')).toBeVisible()
+  expect(api.patch).not.toHaveBeenCalled()
+})
+
+it('turning sole operator routing off keeps the mapping and only saves the switch', async () => {
+  currentOptions['model_operator_setting.model_channel_map'] = soleOperatorMap()
+  show()
+  const section = await screen.findByRole('region', {
+    name: 'Sole operator mappings',
+  })
+  await waitFor(() =>
+    expect(
+      within(section).getAllByRole('combobox', { name: 'Model' })
+    ).toHaveLength(2)
+  )
+  await userEvent.click(
+    screen.getByRole('switch', { name: 'Enable sole operator routing' })
+  )
+  expect(screen.getByRole('button', { name: 'Add Model' })).toBeDisabled()
+  expect(within(section).getAllByRole('combobox', { name: 'Model' })).toHaveLength(
+    2
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+  await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(1))
+  expect(vi.mocked(api.patch).mock.calls[0][1]).toEqual({
+    options: { 'model_operator_setting.enabled': 'false' },
+  })
+})
+
+it('reports unavailable channel and model lists without dropping the mapping', async () => {
+  currentOptions['model_operator_setting.model_channel_map'] =
+    '{ "gpt-4o": 1 }'
+  const get = vi.mocked(api.get).getMockImplementation()
+  if (!get) throw new Error('API fixture is not initialized')
+  vi.mocked(api.get).mockImplementation(async (url, config) => {
+    if (
+      url === '/api/channel' ||
+      url === '/api/channel/models_enabled'
+    ) {
+      return { data: { success: false, message: 'upstream unavailable' } }
+    }
+    return get(url, config)
+  })
+  show()
+  expect(await screen.findByText('Channel list unavailable')).toBeVisible()
+  expect(screen.getByText('Model list unavailable')).toBeVisible()
+  const section = screen.getByRole('region', {
+    name: 'Sole operator mappings',
+  })
+  await waitFor(() =>
+    expect(
+      within(section).getByRole('combobox', { name: 'Model' })
+    ).toHaveValue('gpt-4o')
+  )
+  expect(within(section).getByText('#1')).toBeVisible()
+  expect(screen.getByText('model pinned')).toBeVisible()
+})

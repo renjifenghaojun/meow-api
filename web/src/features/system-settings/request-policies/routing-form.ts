@@ -36,6 +36,54 @@ export function createRoutingPolicySchema(t: TFunction) {
         }
       }),
     }),
+    model_operator_setting: z.object({
+      enabled: z.boolean(),
+      model_channel_map: z.string().superRefine((value, context) => {
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(value)
+        } catch {
+          context.addIssue({
+            code: 'custom',
+            message: t('Invalid JSON format'),
+          })
+          return
+        }
+        if (
+          typeof parsed !== 'object' ||
+          parsed === null ||
+          Array.isArray(parsed)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            message: t('Model operator map must be a JSON object'),
+          })
+          return
+        }
+        for (const [model, channelId] of Object.entries(parsed)) {
+          if (!model.trim()) {
+            context.addIssue({
+              code: 'custom',
+              message: t('Model name must not be empty'),
+            })
+            return
+          }
+          if (
+            typeof channelId !== 'number' ||
+            !Number.isInteger(channelId) ||
+            channelId <= 0
+          ) {
+            context.addIssue({
+              code: 'custom',
+              message: t('Channel id must be a positive integer for {{model}}', {
+                model,
+              }),
+            })
+            return
+          }
+        }
+      }),
+    }),
   })
 }
 
@@ -63,6 +111,11 @@ export function routingPolicyFormValues(
       ),
       rules: options['channel_affinity_setting.rules'] || '[]',
     },
+    model_operator_setting: {
+      enabled: options['model_operator_setting.enabled'] === 'true',
+      model_channel_map:
+        options['model_operator_setting.model_channel_map'] || '{}',
+    },
   }
 }
 
@@ -75,6 +128,12 @@ export function routingPolicyOptions(
     ...Object.fromEntries(
       Object.entries(values.channel_affinity_setting).map(([key, value]) => [
         `channel_affinity_setting.${key}`,
+        String(value),
+      ])
+    ),
+    ...Object.fromEntries(
+      Object.entries(values.model_operator_setting).map(([key, value]) => [
+        `model_operator_setting.${key}`,
         String(value),
       ])
     ),

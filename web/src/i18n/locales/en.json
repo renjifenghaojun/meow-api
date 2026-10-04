@@ -7091,6 +7091,27 @@
     "Send requests to the model API and spend your quota": "Send requests to the model API and spend your quota",
     "Sensitive": "Sensitive",
     "Trusted application": "Trusted application",
-    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management."
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.",
+    "Sole operator routing": "Sole operator routing",
+    "Pin a model to one channel. Requests try that channel first and reach the other channels only while it is unavailable; models without a mapping keep the default routing.": "Pin a model to one channel. Requests try that channel first and reach the other channels only while it is unavailable; models without a mapping keep the default routing.",
+    "Enable sole operator routing": "Enable sole operator routing",
+    "Turn off to keep every model on the default routing logic.": "Turn off to keep every model on the default routing logic.",
+    "Operator editor mode": "Operator editor mode",
+    "No models pinned yet": "No models pinned yet",
+    "Add a model to route it through one channel.": "Add a model to route it through one channel.",
+    "Sole operator table": "Sole operator table",
+    "Operator channel": "Operator channel",
+    "Not found": "Not found",
+    "Model operator map JSON": "Model operator map JSON",
+    "Maps a model name to its operator channel id.": "Maps a model name to its operator channel id.",
+    "model pinned": "model pinned",
+    "models pinned": "models pinned",
+    "Channel list unavailable": "Channel list unavailable",
+    "Model list unavailable": "Model list unavailable",
+    "Delete Model Mapping": "Delete Model Mapping",
+    "Delete the operator mapping for “{{model}}”? Save your changes to apply the removal.": "Delete the operator mapping for “{{model}}”? Save your changes to apply the removal.",
+    "Model operator map must be a JSON object": "Model operator map must be a JSON object",
+    "Model name must not be empty": "Model name must not be empty",
+    "Sole operator mappings": "Sole operator mappings"
   }
 }

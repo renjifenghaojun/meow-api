@@ -7091,6 +7091,27 @@
     "Send requests to the model API and spend your quota": "Gửi yêu cầu đến API mô hình và sử dụng hạn mức của bạn",
     "Sensitive": "Nhạy cảm",
     "Trusted application": "Ứng dụng đáng tin cậy",
-    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Chỉ dành cho quản trị viên. Bắt buộc trước khi ứng dụng này có thể yêu cầu các quyền nhạy cảm như nạp tiền ví hoặc quản lý khóa API."
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Chỉ dành cho quản trị viên. Bắt buộc trước khi ứng dụng này có thể yêu cầu các quyền nhạy cảm như nạp tiền ví hoặc quản lý khóa API.",
+    "Sole operator routing": "Định tuyến nhà cung cấp duy nhất",
+    "Pin a model to one channel. Requests try that channel first and reach the other channels only while it is unavailable; models without a mapping keep the default routing.": "Gán một mô hình cho một kênh duy nhất. Yêu cầu sẽ thử kênh đó trước và chỉ chuyển sang các kênh khác khi kênh đó không khả dụng; các mô hình chưa được ánh xạ vẫn dùng định tuyến mặc định.",
+    "Enable sole operator routing": "Bật định tuyến nhà cung cấp duy nhất",
+    "Turn off to keep every model on the default routing logic.": "Tắt để mọi mô hình dùng logic định tuyến mặc định.",
+    "Operator editor mode": "Chế độ chỉnh sửa nhà cung cấp",
+    "No models pinned yet": "Chưa gán mô hình nào",
+    "Add a model to route it through one channel.": "Thêm một mô hình để định tuyến qua một kênh duy nhất.",
+    "Sole operator table": "Bảng nhà cung cấp duy nhất",
+    "Operator channel": "Kênh nhà cung cấp",
+    "Not found": "Không tìm thấy",
+    "Model operator map JSON": "JSON ánh xạ nhà cung cấp",
+    "Maps a model name to its operator channel id.": "Ánh xạ tên mô hình với ID kênh nhà cung cấp của nó.",
+    "model pinned": "mô hình đã gán",
+    "models pinned": "mô hình đã gán",
+    "Channel list unavailable": "Danh sách kênh không khả dụng",
+    "Model list unavailable": "Danh sách mô hình không khả dụng",
+    "Delete Model Mapping": "Xóa ánh xạ mô hình",
+    "Delete the operator mapping for “{{model}}”? Save your changes to apply the removal.": "Xóa ánh xạ nhà cung cấp của mô hình “{{model}}”? Hãy lưu thay đổi để áp dụng việc xóa.",
+    "Model operator map must be a JSON object": "Ánh xạ nhà cung cấp phải là một đối tượng JSON",
+    "Model name must not be empty": "Tên mô hình không được để trống",
+    "Sole operator mappings": "Ánh xạ nhà cung cấp duy nhất"
   }
 }

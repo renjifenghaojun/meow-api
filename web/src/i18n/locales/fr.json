@@ -7091,6 +7091,27 @@
     "Send requests to the model API and spend your quota": "Envoyer des requêtes à l'API des modèles et consommer votre quota",
     "Sensitive": "Sensible",
     "Trusted application": "Application de confiance",
-    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Réservé aux administrateurs. Requis avant que cette application puisse demander des autorisations sensibles telles que la recharge du portefeuille ou la gestion des clés API."
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "Réservé aux administrateurs. Requis avant que cette application puisse demander des autorisations sensibles telles que la recharge du portefeuille ou la gestion des clés API.",
+    "Sole operator routing": "Routage d'opérateur unique",
+    "Pin a model to one channel. Requests try that channel first and reach the other channels only while it is unavailable; models without a mapping keep the default routing.": "Épinglez un modèle à un seul canal. Les requêtes essaient ce canal en premier et n'atteignent les autres canaux que lorsqu'il est indisponible ; les modèles sans correspondance conservent le routage par défaut.",
+    "Enable sole operator routing": "Activer le routage d'opérateur unique",
+    "Turn off to keep every model on the default routing logic.": "Désactivez pour conserver la logique de routage par défaut pour tous les modèles.",
+    "Operator editor mode": "Mode d'édition de l'opérateur",
+    "No models pinned yet": "Aucun modèle épinglé pour le moment",
+    "Add a model to route it through one channel.": "Ajoutez un modèle pour l'acheminer via un seul canal.",
+    "Sole operator table": "Tableau des opérateurs uniques",
+    "Operator channel": "Canal opérateur",
+    "Not found": "Introuvable",
+    "Model operator map JSON": "JSON de correspondance des opérateurs",
+    "Maps a model name to its operator channel id.": "Associe un nom de modèle à l'identifiant de son canal opérateur.",
+    "model pinned": "modèle épinglé",
+    "models pinned": "modèles épinglés",
+    "Channel list unavailable": "Liste des canaux indisponible",
+    "Model list unavailable": "Liste des modèles indisponible",
+    "Delete Model Mapping": "Supprimer la correspondance du modèle",
+    "Delete the operator mapping for “{{model}}”? Save your changes to apply the removal.": "Supprimer la correspondance d'opérateur pour « {{model}} » ? Enregistrez vos modifications pour appliquer la suppression.",
+    "Model operator map must be a JSON object": "La correspondance des opérateurs doit être un objet JSON",
+    "Model name must not be empty": "Le nom du modèle ne peut pas être vide",
+    "Sole operator mappings": "Correspondances d'opérateur unique"
   }
 }

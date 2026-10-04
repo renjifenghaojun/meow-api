@@ -23,6 +23,7 @@ import (
 // the runtime globals updated by the same write never disagree with it.
 type RequestPolicySnapshot struct {
 	Affinity        operation_setting.ChannelAffinitySetting
+	ModelOperator   operation_setting.ModelOperatorSetting
 	RetryTimes      int
 	RetryCodes      []operation_setting.StatusCodeRange
 	DisableCodes    []operation_setting.StatusCodeRange
@@ -41,6 +42,7 @@ func requestPolicyDefaultOptions() map[string]string {
 	defaults := make(map[string]string)
 	for prefix, value := range map[string]any{
 		"channel_affinity_setting.": operation_setting.GetChannelAffinitySetting(),
+		"model_operator_setting.":   operation_setting.GetModelOperatorSetting(),
 		"monitor_setting.":          operation_setting.GetMonitorSetting(),
 	} {
 		fields, err := config.ConfigToMap(value)
@@ -66,6 +68,9 @@ func requestPolicyDefaultOptions() map[string]string {
 
 func IsRequestPolicyOption(key string) bool {
 	if strings.HasPrefix(key, "channel_affinity_setting.") {
+		return true
+	}
+	if strings.HasPrefix(key, "model_operator_setting.") {
 		return true
 	}
 	switch key {
@@ -99,6 +104,7 @@ func BuildRequestPolicy(options map[string]string) (*RequestPolicySnapshot, erro
 	maps.Copy(raw, options)
 	snapshot := &RequestPolicySnapshot{Options: raw}
 	affinityFields := map[string]string{}
+	operatorFields := map[string]string{}
 	for key, value := range raw {
 		if field, ok := strings.CutPrefix(key, "channel_affinity_setting."); ok {
 			switch field {
@@ -107,6 +113,14 @@ func BuildRequestPolicy(options map[string]string) (*RequestPolicySnapshot, erro
 				return nil, fmt.Errorf("unknown affinity option: %s", key)
 			}
 			affinityFields[field] = value
+		}
+		if field, ok := strings.CutPrefix(key, "model_operator_setting."); ok {
+			switch field {
+			case "enabled", "model_channel_map":
+			default:
+				return nil, fmt.Errorf("unknown model operator option: %s", key)
+			}
+			operatorFields[field] = value
 		}
 	}
 	// Decode through JSON so malformed scalar/array values cannot be silently ignored.
@@ -125,6 +139,27 @@ func BuildRequestPolicy(options map[string]string) (*RequestPolicySnapshot, erro
 	}
 	if err := common.Unmarshal(encoded, &snapshot.Affinity); err != nil {
 		return nil, err
+	}
+	if len(operatorFields) > 0 {
+		operatorJSON := map[string]json.RawMessage{}
+		for key, value := range operatorFields {
+			if key == "enabled" {
+				encoded, _ := common.Marshal(value == "true")
+				operatorJSON[key] = encoded
+			} else {
+				operatorJSON[key] = json.RawMessage(value)
+			}
+		}
+		encoded, err := common.Marshal(operatorJSON)
+		if err != nil {
+			return nil, err
+		}
+		if err := common.Unmarshal(encoded, &snapshot.ModelOperator); err != nil {
+			return nil, fmt.Errorf("invalid model operator setting: %w", err)
+		}
+		if err := operation_setting.ValidateModelOperatorMap(operatorFields["model_channel_map"]); err != nil {
+			return nil, err
+		}
 	}
 	snapshot.RetryTimes, err = strconv.Atoi(raw["RetryTimes"])
 	if err != nil || snapshot.RetryTimes < 0 || snapshot.RetryTimes == math.MaxInt {

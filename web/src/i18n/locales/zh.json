@@ -7091,6 +7091,27 @@
     "Send requests to the model API and spend your quota": "向模型 API 发送请求并消耗你的配额",
     "Sensitive": "敏感",
     "Trusted application": "受信任的应用",
-    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "仅限管理员。此应用需先被标记为受信任，才能申请钱包充值、API 密钥管理等敏感权限。"
+    "Administrator only. Required before this application may request sensitive scopes such as wallet top-up or API key management.": "仅限管理员。此应用需先被标记为受信任，才能申请钱包充值、API 密钥管理等敏感权限。",
+    "Sole operator routing": "唯一运营商路由",
+    "Pin a model to one channel. Requests try that channel first and reach the other channels only while it is unavailable; models without a mapping keep the default routing.": "将模型固定到单一渠道。请求会先尝试该渠道，只有在它不可用时才会转到其他渠道；未配置映射的模型保持默认路由。",
+    "Enable sole operator routing": "启用唯一运营商路由",
+    "Turn off to keep every model on the default routing logic.": "关闭后所有模型保持默认路由逻辑。",
+    "Operator editor mode": "运营商编辑模式",
+    "No models pinned yet": "尚未固定任何模型",
+    "Add a model to route it through one channel.": "添加模型并指定其唯一运营商渠道。",
+    "Sole operator table": "唯一运营商列表",
+    "Operator channel": "运营商渠道",
+    "Not found": "不存在",
+    "Model operator map JSON": "唯一运营商映射 JSON",
+    "Maps a model name to its operator channel id.": "将模型名映射到其运营商渠道 ID。",
+    "model pinned": "个模型已固定",
+    "models pinned": "个模型已固定",
+    "Channel list unavailable": "渠道列表不可用",
+    "Model list unavailable": "模型列表不可用",
+    "Delete Model Mapping": "删除模型映射",
+    "Delete the operator mapping for “{{model}}”? Save your changes to apply the removal.": "删除模型“{{model}}”的唯一运营商映射？保存后将生效。",
+    "Model operator map must be a JSON object": "唯一运营商映射必须是 JSON 对象",
+    "Model name must not be empty": "模型名不能为空",
+    "Sole operator mappings": "唯一运营商映射"
   }
 }

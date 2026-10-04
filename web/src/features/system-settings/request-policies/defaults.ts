@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ChannelAffinitySettings } from '../general/channel-affinity/types'
-import type { SecuritySettings } from '../types'
+import type { ModelOperatorSettings, SecuritySettings } from '../types'
 
 export type RetrySettings = {
   RetryTimes: number
@@ -44,7 +44,8 @@ export type FilteringSettings = Pick<
 export type RequestPolicySettings = RetrySettings &
   HealthSettings &
   FilteringSettings &
-  Pick<ChannelAffinitySettings, keyof ChannelAffinitySettings>
+  Pick<ChannelAffinitySettings, keyof ChannelAffinitySettings> &
+  ModelOperatorSettings
 
 export const defaultRequestPolicySettings: RequestPolicySettings = {
   RetryTimes: 0,
@@ -66,6 +67,8 @@ export const defaultRequestPolicySettings: RequestPolicySettings = {
   'channel_affinity_setting.max_entries': 100000,
   'channel_affinity_setting.default_ttl_seconds': 3600,
   'channel_affinity_setting.rules': '[]',
+  'model_operator_setting.enabled': false,
+  'model_operator_setting.model_channel_map': '{}',
   CheckSensitiveEnabled: false,
   CheckSensitiveOnPromptEnabled: false,
   SensitiveWords: '',

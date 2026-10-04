@@ -10,6 +10,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -66,8 +67,11 @@ func setupChannelSelectAutoGroupsTest(t *testing.T) *gorm.DB {
 
 func createChannelSelectAutoGroupsChannel(t *testing.T, db *gorm.DB, id int, group, modelName string) {
 	t.Helper()
-	priority := int64(0)
-	weight := uint(100)
+	createChannelSelectAutoGroupsChannelAt(t, db, id, group, modelName, 0, 100)
+}
+
+func createChannelSelectAutoGroupsChannelAt(t *testing.T, db *gorm.DB, id int, group, modelName string, priority int64, weight uint) {
+	t.Helper()
 	require.NoError(t, db.Create(&model.Channel{
 		Id:       id,
 		Type:     constant.ChannelTypeOpenAI,
@@ -179,4 +183,174 @@ func TestCacheGetRandomSatisfiedChannelServesErrorRateCooldownChannelAsLastResor
 	require.NoError(t, err)
 	require.NotNil(t, channel)
 	assert.Equal(t, 2202, channel.Id)
+}
+
+// setupModelOperatorSetting snapshots the model operator setting globals so a
+// test can mutate them and restore on cleanup.
+func setupModelOperatorSetting(t *testing.T) {
+	t.Helper()
+	operatorSetting := operation_setting.GetModelOperatorSetting()
+	originalEnabled := operatorSetting.Enabled
+	originalMap := operatorSetting.ModelChannelMap
+	t.Cleanup(func() {
+		operatorSetting.Enabled = originalEnabled
+		operatorSetting.ModelChannelMap = originalMap
+	})
+}
+
+func setModelOperator(t *testing.T, channelMap map[string]int) {
+	t.Helper()
+	operatorSetting := operation_setting.GetModelOperatorSetting()
+	operatorSetting.Enabled = true
+	operatorSetting.ModelChannelMap = channelMap
+}
+
+func TestCacheGetRandomSatisfiedChannelRoutesModelToSoleOperatorChannel(t *testing.T) {
+	db := setupChannelSelectAutoGroupsTest(t)
+	setupModelOperatorSetting(t)
+	const modelName = "sole-operator-model"
+	// The operator channel sits in the lowest priority tier while two
+	// competitors outrank it, so default routing could never pick it first and
+	// any selection of it proves the mapping pinned the request.
+	createChannelSelectAutoGroupsChannelAt(t, db, 2302, "default", modelName, 10, 100)
+	createChannelSelectAutoGroupsChannelAt(t, db, 2303, "default", modelName, 20, 100)
+	createChannelSelectAutoGroupsChannelAt(t, db, 2301, "default", modelName, 0, 10)
+	setModelOperator(t, map[string]int{modelName: 2301})
+	model.InitChannelCache()
+
+	gin.SetMode(gin.TestMode)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	common.SetContextKey(ctx, constant.ContextKeyUserGroup, "default")
+	retry := 0
+	param := &RetryParam{
+		Ctx:         ctx,
+		TokenGroup:  "default",
+		ModelName:   modelName,
+		RequestPath: "/v1/chat/completions",
+		Retry:       &retry,
+	}
+
+	// First attempt: the mapping overrides the priority order entirely.
+	channel, _, err := CacheGetRandomSatisfiedChannel(param)
+	require.NoError(t, err)
+	require.NotNil(t, channel)
+	assert.Equal(t, 2301, channel.Id)
+
+	// Retries no longer re-pin the operator: the default priority logic moves
+	// to the next tier instead of falling back onto the operator channel.
+	param.IncreaseRetry()
+	channel, _, err = CacheGetRandomSatisfiedChannel(param)
+	require.NoError(t, err)
+	require.NotNil(t, channel)
+	assert.Equal(t, 2302, channel.Id)
+}
+
+func TestCacheGetRandomSatisfiedChannelFallsBackWhenSoleOperatorUnusable(t *testing.T) {
+	db := setupChannelSelectAutoGroupsTest(t)
+	setupModelOperatorSetting(t)
+	const modelName = "sole-operator-fallback-model"
+	createChannelSelectAutoGroupsChannel(t, db, 2401, "default", modelName)
+	createChannelSelectAutoGroupsChannel(t, db, 2402, "default", modelName)
+	setModelOperator(t, map[string]int{modelName: 2401})
+	model.InitChannelCache()
+
+	gin.SetMode(gin.TestMode)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	common.SetContextKey(ctx, constant.ContextKeyUserGroup, "default")
+	newParam := func() *RetryParam {
+		retry := 0
+		return &RetryParam{
+			Ctx:         ctx,
+			TokenGroup:  "default",
+			ModelName:   modelName,
+			RequestPath: "/v1/chat/completions",
+			Retry:       &retry,
+		}
+	}
+
+	// Operator channel disabled: fall back to the default routing logic.
+	require.NoError(t, db.Model(&model.Channel{}).Where("id = ?", 2401).Update("status", common.ChannelStatusManuallyDisabled).Error)
+	model.CacheUpdateChannelStatus(2401, common.ChannelStatusManuallyDisabled)
+	channel, _, err := CacheGetRandomSatisfiedChannel(newParam())
+	require.NoError(t, err)
+	require.NotNil(t, channel)
+	assert.Equal(t, 2402, channel.Id)
+
+	// Operator channel id pointing at a deleted/unknown channel: same fallback.
+	setModelOperator(t, map[string]int{modelName: 999999})
+	channel, _, err = CacheGetRandomSatisfiedChannel(newParam())
+	require.NoError(t, err)
+	require.NotNil(t, channel)
+	assert.Contains(t, []int{2401, 2402}, channel.Id)
+
+	// Operator channel cooled down by failures: the mapping must not bypass the
+	// cooldown, so the request falls back to the other channel.
+	setModelOperator(t, map[string]int{modelName: 2401})
+	for i := 0; i < 5; i++ {
+		RecordChannelAttemptOutcome(2401, modelName, true)
+	}
+	require.True(t, ChannelInErrorCooldown(2401, modelName))
+	channel, _, err = CacheGetRandomSatisfiedChannel(newParam())
+	require.NoError(t, err)
+	require.NotNil(t, channel)
+	assert.Equal(t, 2402, channel.Id)
+}
+
+func TestCacheGetRandomSatisfiedChannelSkipsSoleOperatorOutsideGroupPool(t *testing.T) {
+	db := setupChannelSelectAutoGroupsTest(t)
+	setupModelOperatorSetting(t)
+	const modelName = "sole-operator-group-model"
+	// The operator channel serves another group only, so pinning it would route
+	// a request past its group pool and price it with the wrong group.
+	createChannelSelectAutoGroupsChannel(t, db, 2601, "vip", modelName)
+	createChannelSelectAutoGroupsChannel(t, db, 2602, "default", modelName)
+	setModelOperator(t, map[string]int{modelName: 2601})
+	model.InitChannelCache()
+
+	gin.SetMode(gin.TestMode)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	common.SetContextKey(ctx, constant.ContextKeyUserGroup, "default")
+	retry := 0
+	param := &RetryParam{
+		Ctx:         ctx,
+		TokenGroup:  "default",
+		ModelName:   modelName,
+		RequestPath: "/v1/chat/completions",
+		Retry:       &retry,
+	}
+
+	channel, selectGroup, err := CacheGetRandomSatisfiedChannel(param)
+	require.NoError(t, err)
+	require.NotNil(t, channel)
+	assert.Equal(t, 2602, channel.Id)
+	assert.Equal(t, "default", selectGroup)
+}
+
+func TestCacheGetRandomSatisfiedChannelIgnoresOperatorForUnmappedModel(t *testing.T) {
+	db := setupChannelSelectAutoGroupsTest(t)
+	setupModelOperatorSetting(t)
+	const mappedModel = "sole-operator-mapped-model"
+	const otherModel = "sole-operator-unmapped-model"
+	createChannelSelectAutoGroupsChannel(t, db, 2501, "default", mappedModel)
+	createChannelSelectAutoGroupsChannel(t, db, 2502, "default", otherModel)
+	setModelOperator(t, map[string]int{mappedModel: 2501})
+	model.InitChannelCache()
+
+	gin.SetMode(gin.TestMode)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	common.SetContextKey(ctx, constant.ContextKeyUserGroup, "default")
+	retry := 0
+	param := &RetryParam{
+		Ctx:         ctx,
+		TokenGroup:  "default",
+		ModelName:   otherModel,
+		RequestPath: "/v1/chat/completions",
+		Retry:       &retry,
+	}
+
+	// A model without a mapping keeps the default routing logic untouched.
+	channel, _, err := CacheGetRandomSatisfiedChannel(param)
+	require.NoError(t, err)
+	require.NotNil(t, channel)
+	assert.Equal(t, 2502, channel.Id)
 }
